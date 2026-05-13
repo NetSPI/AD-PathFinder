@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=63.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adpathfinder"
+version = "1.1.0"
+description = "ADPathfinder is a tool designed for Active Directory environments, integrating Neo4j and Bloodhound data with NTDS hashes, to provide a comprehensive overview of Active Directory risk and help to enhance security posture within Active Directory environments."
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+  {name = "Jonathan O'Reilly"},
+]
+keywords = ["ad", "bloodhound", "ntds"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Information Technology",
+  "License :: OSI Approved :: BSD License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Security",
+]
+
+dependencies = [
+  "neo4j>=4.4.0",
+  "colorama>=0.4.4",
+  "requests>=2.25.1",
+  "beautifulsoup4>=4.9.3",
+  "argcomplete>=1.12.3",
+  "prompt_toolkit>=3.0.20"
+]
+requires-python = ">=3.9"
+
+[project.scripts]
+adpathfinder = "modules.main:main"
+
+[tool.setuptools]
+packages = [
+    "modules",
+    "checks",
+    "checks.core",
+    "checks.core.display",
+    "checks.cross_domain",
+    "datasources",
+    "assets",
+]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"assets" = ["*.css", "*.js"]

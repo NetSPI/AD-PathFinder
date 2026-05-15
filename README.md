@@ -151,6 +151,10 @@ Checks are small classes that register with a decorator, declare their data requ
 
 See [Adding new checks](https://github.com/NetSPI/AD-PathFinder/wiki/Adding-New-Checks), [Working with OpenGraph plugins](https://github.com/NetSPI/AD-PathFinder/wiki/OpenGraph-Plugins), and the [Framework Guide](https://github.com/NetSPI/AD-PathFinder/wiki/Framework-Guide) on the wiki.
 
+### Testing
+
+`pip install -e ".[test]"` then `pytest tests/ -m "not neo4j and not integration"` runs the framework suite. See [`tests/README.md`](tests/README.md) for the Neo4j-backed per-check fixture suite.
+
 ## Acknowledgements
 
 ADPathfinder builds on data collected by other projects; thanks to their authors and the SpecterOps team:

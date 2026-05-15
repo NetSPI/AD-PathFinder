@@ -19,23 +19,58 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install package
-        run: pip install -e .
-
-      - name: Install mypy
-        run: pip install mypy
+      - name: Install package + test extras
+        run: pip install -e ".[test]"
 
       - name: Import smoke
         run: python -c "import modules.main, checks, datasources"
 
-      - name: Registry smoke
-        run: |
-          python -c "
-          from checks.core.registry import CheckRegistry
-          n = len(CheckRegistry.get_all_checks())
-          assert n > 40, f'only {n} checks registered'
-          print(f'{n} checks registered')
-          "
-
       - name: Type check
         run: python -m mypy --ignore-missing-imports --follow-imports=silent checks/core/
+
+      - name: Run framework tests
+        run: >-
+          pytest tests/ -v --maxfail=5
+          -m "not neo4j and not integration"
+          --cov=modules --cov=checks --cov=datasources
+          --cov-report=xml --cov-report=term
+
+      - name: Upload coverage
+        if: matrix.python-version == '3.13'
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.xml
+          fail_ci_if_error: false
+
+  neo4j-fixture-tests:
+    runs-on: ubuntu-latest
+    services:
+      neo4j:
+        image: neo4j:5-community
+        env:
+          NEO4J_AUTH: neo4j/testpassword
+          NEO4J_PLUGINS: '[]'
+        ports:
+          - 7687:7687
+        options: >-
+          --health-cmd "cypher-shell -u neo4j -p testpassword 'RETURN 1'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install package + test extras
+        run: pip install -e ".[test]"
+
+      - name: Run Neo4j fixture tests
+        env:
+          ADPF_TEST_ALLOW_WIPE: '1'
+          NEO4J_URI: bolt://localhost:7687
+          NEO4J_USER: neo4j
+          NEO4J_PASSWORD: testpassword
+        run: pytest tests/checks -v -m "neo4j and not integration" --no-cov

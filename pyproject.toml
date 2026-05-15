@@ -27,7 +27,7 @@ classifiers = [
 ]
 
 dependencies = [
-  "neo4j>=4.4.0",
+  "neo4j>=5.0.0",
   "colorama>=0.4.4",
   "requests>=2.25.1",
   "beautifulsoup4>=4.9.3",
@@ -36,8 +36,17 @@ dependencies = [
 ]
 requires-python = ">=3.9"
 
+[project.optional-dependencies]
+test = ["pytest>=7.0", "pytest-cov>=4.0", "mypy>=1.0"]
+
 [project.scripts]
 adpathfinder = "modules.main:main"
+
+[tool.pytest.ini_options]
+markers = [
+    "neo4j: requires a running Neo4j instance (set NEO4J_URI or use the docker one-liner)",
+    "integration: optional end-to-end smoke; not part of the default PR run",
+]
 
 [tool.setuptools]
 packages = [

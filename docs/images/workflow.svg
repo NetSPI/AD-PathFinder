@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1260" height="380" viewBox="0 0 1260 380" role="img" aria-labelledby="title desc">
+  <title id="title">ADPathfinder workflow</title>
+  <desc id="desc">BloodHound, NTDS, hashcat, and platform data flow through ADPathfinder to create prioritized findings and reports.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f6f8fb; }
+      .card { fill: #ffffff; stroke: #d9e0ea; stroke-width: 2; }
+      .core { fill: #1b2a4a; }
+      .orange { fill: #e87722; }
+      .muted { fill: #617084; font-family: Arial, Helvetica, sans-serif; font-size: 18px; }
+      .title { fill: #1b2a4a; font-family: Arial, Helvetica, sans-serif; font-size: 28px; font-weight: 700; }
+      .coretext { fill: #ffffff; font-family: Arial, Helvetica, sans-serif; font-size: 30px; font-weight: 700; }
+      .small { fill: #ffffff; font-family: Arial, Helvetica, sans-serif; font-size: 17px; }
+      .label { fill: #25364f; font-family: Arial, Helvetica, sans-serif; font-size: 20px; font-weight: 700; }
+      .arrow { stroke: #e87722; stroke-width: 5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+  <rect class="bg" width="1260" height="380"/>
+  <rect class="card" x="54" y="54" width="290" height="310" rx="14"/>
+  <text class="title" x="82" y="94">Inputs</text>
+  <circle class="orange" cx="92" cy="136" r="8"/>
+  <text class="label" x="112" y="143">BloodHound CE</text>
+  <text class="muted" x="112" y="171">Graph relationships</text>
+  <circle class="orange" cx="92" cy="211" r="8"/>
+  <text class="label" x="112" y="218">NTDS + hashcat</text>
+  <text class="muted" x="112" y="246">Password context</text>
+  <circle class="orange" cx="92" cy="286" r="8"/>
+  <text class="label" x="112" y="293">OpenGraph collectors</text>
+  <text class="muted" x="112" y="321">MSSQLHound,</text>
+  <text class="muted" x="112" y="341">ConfigManBearPig</text>
+
+  <path class="arrow" d="M360 180 H470"/>
+  <path class="arrow" d="M450 160 L470 180 L450 200"/>
+
+  <rect class="core" x="488" y="70" width="304" height="220" rx="18"/>
+  <text class="coretext" x="544" y="154">ADPathfinder</text>
+  <text class="small" x="640" y="194" text-anchor="middle">Attack Mapping</text>
+  <text class="small" x="640" y="222" text-anchor="middle">Password Audit</text>
+  <text class="small" x="640" y="250" text-anchor="middle">Automated Reporting</text>
+
+  <path class="arrow" d="M810 180 H920"/>
+  <path class="arrow" d="M900 160 L920 180 L900 200"/>
+
+  <rect class="card" x="940" y="54" width="290" height="310" rx="14"/>
+  <text class="title" x="968" y="94">Outputs</text>
+  <circle class="orange" cx="978" cy="136" r="8"/>
+  <text class="label" x="998" y="143">HTML reports</text>
+  <text class="muted" x="998" y="171">Client-ready evidence</text>
+  <circle class="orange" cx="978" cy="211" r="8"/>
+  <text class="label" x="998" y="218">JSON artifacts</text>
+  <text class="muted" x="998" y="246">Domain &amp; password JSON</text>
+  <circle class="orange" cx="978" cy="286" r="8"/>
+  <text class="label" x="998" y="293">Text reports</text>
+  <text class="muted" x="998" y="321">Plain-text summaries</text>
+</svg>

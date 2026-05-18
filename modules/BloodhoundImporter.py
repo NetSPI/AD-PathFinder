@@ -531,7 +531,7 @@ class BloodhoundImporter:
             raise ValueError(
                 f"OpenGraph {source_name}: metadata.source_kind must be a string"
             )
-        if 'source_kind' in metadata:
+        if 'source_kind' in metadata and source_kind:
             source_kind = self._safe_opengraph_identifier(
                 source_kind,
                 'source_kind',
@@ -688,8 +688,6 @@ class BloodhoundImporter:
         source_kind = metadata.get('source_kind', '')
         if 'source_kind' in metadata and not isinstance(source_kind, str):
             raise ValueError("OpenGraph metadata.source_kind must be a string")
-        if 'source_kind' in metadata and not source_kind:
-            raise ValueError("OpenGraph metadata.source_kind must be a non-empty string")
         if source_kind:
             label = safe_cypher_identifier(source_kind, 'source_kind')
             if label in reserved_labels():

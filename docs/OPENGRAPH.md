@@ -29,8 +29,9 @@ data. Mixed imports such as `SharpHound.zip MSSQLHound.zip` are treated as a
 BloodHound data import because they can establish or refresh the AD baseline.
 
 `metadata` may be omitted. If present, it must be a JSON object. When
-`metadata.source_kind` is present, it must be a non-empty string matching the
-same safe identifier rule as labels.
+`metadata.source_kind` is present, it must be a string. Empty or whitespace-only
+values are treated as omitted; non-empty values must match the same safe
+identifier rule as labels.
 
 If BloodHound CE analysis takes longer than the default 600 seconds, set
 `ADPF_BH_INGESTION_TIMEOUT_SECONDS` to a positive integer number of seconds.
@@ -140,8 +141,9 @@ Property endpoint example:
 ## Stubs
 
 Endpoint stubs use `metadata.source_kind` as their label when it is present. If
-`source_kind` is missing, the importer uses `OpenGraph_Stub`. Invalid or empty
-`source_kind` values are rejected before any OpenGraph writes are attempted.
+`source_kind` is missing, empty, or whitespace-only, the importer uses
+`OpenGraph_Stub`. Invalid non-empty `source_kind` values are rejected before any
+OpenGraph writes are attempted.
 
 Stubs are created only for `match_by: "id"` endpoints that do not supply an
 endpoint `kind`. A typed endpoint that does not resolve is left unmatched rather
@@ -300,8 +302,9 @@ semantics. The upstream docs are:
 
 Intentional ADPathfinder differences:
 
-- `metadata.source_kind` may be omitted. If present, it must be a non-empty safe
-  identifier because ADPathfinder uses it as the fallback endpoint-stub label.
+- `metadata.source_kind` may be omitted. Empty or whitespace-only values are
+  treated as omitted. Non-empty values must be safe identifiers because
+  ADPathfinder uses them as fallback endpoint-stub labels.
 - ADPathfinder does not append `source_kind` to every imported node.
 - Missing or empty `node.kinds` falls back to `Base`; generic Base-only nodes
   are merged as `OpenGraph_Stub`.

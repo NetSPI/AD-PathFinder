@@ -1154,11 +1154,12 @@ def test_opengraph_rejects_present_non_string_source_kind_before_query(source_ki
     assert conn.queries == []
 
 
-def test_opengraph_treats_empty_source_kind_as_omitted():
+@pytest.mark.parametrize("source_kind", ["", "   "])
+def test_opengraph_treats_blank_source_kind_as_omitted(source_kind):
     conn = RecordingConnection(responses=[[{"c": 0}]])
     importer = BloodhoundImporter(conn)
     data = {
-        "metadata": {"source_kind": ""},
+        "metadata": {"source_kind": source_kind},
         "graph": {
             "nodes": [
                 {

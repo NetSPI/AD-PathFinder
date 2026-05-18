@@ -526,17 +526,7 @@ class BloodhoundImporter:
         metadata = data.get('metadata', {})
         if not isinstance(metadata, dict):
             raise ValueError(f"OpenGraph {source_name}: metadata must be an object")
-        source_kind = metadata.get('source_kind', '')
-        if 'source_kind' in metadata and not isinstance(source_kind, str):
-            raise ValueError(
-                f"OpenGraph {source_name}: metadata.source_kind must be a string"
-            )
-        if 'source_kind' in metadata:
-            source_kind = self._safe_opengraph_identifier(
-                source_kind,
-                'source_kind',
-                f"OpenGraph {source_name}: metadata.source_kind",
-            )
+        source_kind = self._validated_source_kind(metadata, source_name)
 
         if merge_mode == 'opengraph' and source_kind in reserved_labels():
             raise ValueError(
@@ -603,6 +593,20 @@ class BloodhoundImporter:
                     f"OpenGraph {source_name}: edge {index} "
                     "properties must be an object"
                 )
+
+    def _validated_source_kind(self, metadata: dict, source_name: str) -> str:
+        source_kind = metadata.get('source_kind', '')
+        if 'source_kind' in metadata and not isinstance(source_kind, str):
+            raise ValueError(
+                f"OpenGraph {source_name}: metadata.source_kind must be a string"
+            )
+        if not source_kind or not source_kind.strip():
+            return ''
+        return self._safe_opengraph_identifier(
+            source_kind,
+            'source_kind',
+            f"OpenGraph {source_name}: metadata.source_kind",
+        )
 
     def _validate_opengraph_endpoint(
         self,
@@ -688,9 +692,7 @@ class BloodhoundImporter:
         source_kind = metadata.get('source_kind', '')
         if 'source_kind' in metadata and not isinstance(source_kind, str):
             raise ValueError("OpenGraph metadata.source_kind must be a string")
-        if 'source_kind' in metadata and not source_kind:
-            raise ValueError("OpenGraph metadata.source_kind must be a non-empty string")
-        if source_kind:
+        if source_kind and source_kind.strip():
             label = safe_cypher_identifier(source_kind, 'source_kind')
             if label in reserved_labels():
                 raise ValueError(

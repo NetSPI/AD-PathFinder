@@ -1154,8 +1154,8 @@ def test_opengraph_rejects_present_non_string_source_kind_before_query(source_ki
     assert conn.queries == []
 
 
-def test_opengraph_rejects_empty_source_kind_before_query():
-    conn = RecordingConnection()
+def test_opengraph_treats_empty_source_kind_as_omitted():
+    conn = RecordingConnection(responses=[[{"c": 0}]])
     importer = BloodhoundImporter(conn)
     data = {
         "metadata": {"source_kind": ""},
@@ -1167,16 +1167,26 @@ def test_opengraph_rejects_empty_source_kind_before_query():
                     "properties": {},
                 }
             ],
-            "edges": [],
+            "edges": [
+                {
+                    "kind": "Jenkins_AdminTo",
+                    "start": {"value": "jenkins-1"},
+                    "end": {"value": "external-1"},
+                    "properties": {},
+                }
+            ],
         },
     }
 
-    with pytest.raises(ValueError, match="metadata.source_kind"):
-        importer._import_opengraph_files_directly(
-            [("jenkins.json", data, "opengraph")]
-        )
+    stub_labels = importer._import_opengraph_files_directly(
+        [("jenkins.json", data, "opengraph")]
+    )
 
-    assert conn.queries == []
+    assert stub_labels == {"OpenGraph_Stub"}
+    assert any(
+        "MERGE (n:`OpenGraph_Stub` {objectid: $objectid})" in q
+        for q, _ in conn.queries
+    )
 
 
 def test_upload_validates_ad_companion_properties_before_filter():

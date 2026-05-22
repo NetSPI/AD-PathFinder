@@ -380,7 +380,7 @@ class SCCMPrivilegeEscalationCheck(MSSQLDomainMixin, SCCMDomainMixin, Check):
                OR (stub.objectid IS NOT NULL AND srvA.objectid IS NOT NULL
                    AND stub.objectid CONTAINS ':' AND srvA.objectid CONTAINS ':'
                    AND split(stub.objectid, ':')[0] = split(srvA.objectid, ':')[0]
-                   AND {host_sid_resolves_to_single_server("split(srvA.objectid, ':')[0]")})
+                   AND {host_sid_resolves_to_single_server("split(srvA.objectid, ':')[0]", "srvA")})
 
             MATCH (srvB:MSSQL_Server)
             WHERE {linked_server_target_resolution('srvB', 'srvB_stub')}
@@ -506,7 +506,7 @@ class SCCMPrivilegeEscalationCheck(MSSQLDomainMixin, SCCMDomainMixin, Check):
                   AND stub.objectid CONTAINS ':'
                   AND src.objectid CONTAINS ':'
                   AND split(stub.objectid, ':')[0] = split(src.objectid, ':')[0]
-                  AND {host_sid_resolves_to_single_server("split(src.objectid, ':')[0]")}
+                  AND {host_sid_resolves_to_single_server("split(src.objectid, ':')[0]", "src")}
                 MATCH (linked:MSSQL_Server)
                 WHERE linked = linkedStub
                    OR {linked_server_target_resolution('linked', 'linkedStub')}

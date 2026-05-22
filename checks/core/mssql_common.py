@@ -68,10 +68,10 @@ def linked_server_target_resolution(real_var, stub_var):
     )
 
 
-def host_sid_resolves_to_single_server(sid_expr):
-    # Avoid bridging ambiguous host SID prefixes shared by sibling instances.
+def host_sid_resolves_to_single_server(sid_expr, source_var):
     return (
-        f"COUNT {{ MATCH (sidServer:MSSQL_Server) "
-        f"WHERE sidServer.objectid CONTAINS ':' "
-        f"AND split(sidServer.objectid, ':')[0] = {sid_expr} }} = 1"
+        f"NOT EXISTS {{ MATCH (sidDup:MSSQL_Server) "
+        f"WHERE sidDup <> {source_var} "
+        f"AND sidDup.objectid CONTAINS ':' "
+        f"AND split(sidDup.objectid, ':')[0] = {sid_expr} }}"
     )

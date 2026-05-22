@@ -2,6 +2,8 @@ from checks.core import Check, check
 from checks.core.high_value import high_value_principal_sets_for_check, is_high_value_principal
 from checks.core.mssql_common import (
     MSSQL_ABUSE_EDGES,
+    host_sid_resolves_to_single_server,
+    linked_server_target_resolution,
     primary_label_expr,
     sql_login_holder_parameters,
     sql_login_report_holder_expr,
@@ -289,10 +291,11 @@ class MSSQLPrivilegeEscalationCheck(Check):
             WHERE toLower(stub.name) ENDS WITH toLower(':' + srvA.sqlServerName)
                OR (stub.objectid IS NOT NULL AND srvA.objectid IS NOT NULL
                    AND stub.objectid CONTAINS ':' AND srvA.objectid CONTAINS ':'
-                   AND split(stub.objectid, ':')[0] = split(srvA.objectid, ':')[0])
+                   AND split(stub.objectid, ':')[0] = split(srvA.objectid, ':')[0]
+                   AND {host_sid_resolves_to_single_server("split(srvA.objectid, ':')[0]")})
 
             MATCH (srvB:MSSQL_Server)-[:MSSQL_Contains]->(target:MSSQL_ServerRole)
-            WHERE toLower(srvB.name) STARTS WITH toLower(srvB_stub.name)
+            WHERE {linked_server_target_resolution('srvB', 'srvB_stub')}
               AND toUpper(target.name) IN [
                   'SYSADMIN', 'SECURITYADMIN', 'SERVERADMIN', 'PROCESSADMIN',
                   'SETUPADMIN', 'BULKADMIN', 'DISKADMIN', 'DBCREATOR'

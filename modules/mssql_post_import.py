@@ -80,6 +80,11 @@ def canonicalize_mssql_linked_server_edges(connection) -> int:
               AND source.objectid CONTAINS ':'
               AND split(source.objectid, ':')[0] = sourceSid
               AND source <> target
+              AND COUNT {{
+                MATCH (sidServer:MSSQL_Server)
+                WHERE sidServer.objectid CONTAINS ':'
+                  AND split(sidServer.objectid, ':')[0] = sourceSid
+              }} = 1
             MERGE (source)-[new:`{rtype}`]->(target)
             WITH old, new, properties(old) AS old_props, properties(new) AS existing_props
             SET new += old_props SET new += existing_props

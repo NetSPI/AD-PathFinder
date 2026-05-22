@@ -100,3 +100,28 @@ def test_fires_on_group_owned_login_through_nested_memberof_depth_6(clean_neo4j)
     assert "SQL OWNERS -> MSSQL_HasLogin -> group-login" in detail
     assert "@TEST.LOCAL" not in detail
     assert "sysadmin" in detail.lower()
+
+
+def test_linked_server_target_does_not_overmatch_sibling_host(clean_neo4j):
+    load_fixture(clean_neo4j, "mssql_priv_esc_linked_server_name_overmatch.cypher")
+
+    findings = run_check(MSSQLPrivilegeEscalationCheck, clean_neo4j, domain_filter="TEST.LOCAL")
+    user_sid = "S-1-5-21-TEST-3701"
+    assert user_sid in findings
+    detail = findings[user_sid]
+    assert "sql01.test.local" in detail
+    assert "sql01b" not in detail
+
+
+def test_linked_server_empty_target_stub_resolves_to_nothing(clean_neo4j):
+    load_fixture(clean_neo4j, "mssql_priv_esc_linked_server_empty_stub.cypher")
+
+    findings = run_check(MSSQLPrivilegeEscalationCheck, clean_neo4j, domain_filter="TEST.LOCAL")
+    assert findings == {}
+
+
+def test_linked_server_shared_host_sid_bridges_to_no_instance(clean_neo4j):
+    load_fixture(clean_neo4j, "mssql_priv_esc_linked_server_shared_host_sid.cypher")
+
+    findings = run_check(MSSQLPrivilegeEscalationCheck, clean_neo4j, domain_filter="TEST.LOCAL")
+    assert findings == {}

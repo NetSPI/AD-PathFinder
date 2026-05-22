@@ -56,3 +56,24 @@ def primary_label_expr(var):
         f"'OpenGraph_Stub', 'ADLocalGroup', 'LocalGroup'] "
         f"AND NOT label STARTS WITH 'Tag_'])"
     )
+
+
+def linked_server_target_resolution(real_var, stub_var):
+    # Delimiter-anchored, non-empty match: a stub named 'sql01' must not
+    # resolve to 'sql01b...', and an empty stub name must resolve to nothing.
+    return (
+        f"({stub_var}.name IS NOT NULL AND {stub_var}.name <> '' "
+        f"AND (toLower({real_var}.name) = toLower({stub_var}.name) "
+        f"OR toLower({real_var}.name) STARTS WITH toLower({stub_var}.name) + '.' "
+        f"OR toLower({real_var}.name) STARTS WITH toLower({stub_var}.name) + ':'))"
+    )
+
+
+def host_sid_resolves_to_single_server(sid_expr):
+    # Host-SID-prefix bridging is only safe when the prefix maps to one
+    # MSSQL_Server; otherwise the stub could be attributed to a sibling instance.
+    return (
+        f"COUNT {{ MATCH (sidServer:MSSQL_Server) "
+        f"WHERE sidServer.objectid CONTAINS ':' "
+        f"AND split(sidServer.objectid, ':')[0] = {sid_expr} }} = 1"
+    )

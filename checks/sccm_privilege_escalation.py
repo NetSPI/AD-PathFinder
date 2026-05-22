@@ -2,6 +2,8 @@ from checks.core import Check, check
 from checks.core.high_value import high_value_principal_sets_for_check, is_high_value_principal
 from checks.core.mssql_common import (
     MSSQL_ABUSE_EDGES,
+    host_sid_resolves_to_single_server,
+    linked_server_target_resolution,
     primary_label_expr,
     sql_login_holder_parameters,
     sql_login_report_holder_expr,
@@ -377,10 +379,11 @@ class SCCMPrivilegeEscalationCheck(MSSQLDomainMixin, SCCMDomainMixin, Check):
             WHERE toLower(stub.name) ENDS WITH toLower(':' + srvA.sqlServerName)
                OR (stub.objectid IS NOT NULL AND srvA.objectid IS NOT NULL
                    AND stub.objectid CONTAINS ':' AND srvA.objectid CONTAINS ':'
-                   AND split(stub.objectid, ':')[0] = split(srvA.objectid, ':')[0])
+                   AND split(stub.objectid, ':')[0] = split(srvA.objectid, ':')[0]
+                   AND {host_sid_resolves_to_single_server("split(srvA.objectid, ':')[0]")})
 
             MATCH (srvB:MSSQL_Server)
-            WHERE toLower(srvB.name) STARTS WITH toLower(srvB_stub.name)
+            WHERE {linked_server_target_resolution('srvB', 'srvB_stub')}
             MATCH (sccmDb:MSSQL_Database)-[:SCCM_AssignAllPermissions]->(site:SCCM_Site)
             WHERE sccmDb.SQLServer = srvB.name{site_cond}
 
@@ -503,9 +506,10 @@ class SCCMPrivilegeEscalationCheck(MSSQLDomainMixin, SCCMDomainMixin, Check):
                   AND stub.objectid CONTAINS ':'
                   AND src.objectid CONTAINS ':'
                   AND split(stub.objectid, ':')[0] = split(src.objectid, ':')[0]
+                  AND {host_sid_resolves_to_single_server("split(src.objectid, ':')[0]")}
                 MATCH (linked:MSSQL_Server)
                 WHERE linked = linkedStub
-                   OR toLower(linked.name) STARTS WITH toLower(linkedStub.name)
+                   OR {linked_server_target_resolution('linked', 'linkedStub')}
                 RETURN link, linked
             }}
             WITH holder, startLogin, reportHolder, pre, preR, src, link, linked

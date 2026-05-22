@@ -149,3 +149,30 @@ def test_no_finding_for_non_admin_group_admin_user(clean_neo4j):
 def test_no_cross_forest_sccm_target_when_domain_filter_set(clean_neo4j):
     findings = _run_sccm_check(clean_neo4j)
     assert "S-1-5-21-TEST-202" not in findings
+
+
+def test_linked_server_target_does_not_overmatch_sibling_host(clean_neo4j):
+    load_fixture(clean_neo4j, "sccm_priv_esc_linked_server_name_overmatch.cypher")
+
+    findings = run_check(SCCMPrivilegeEscalationCheck, clean_neo4j, domain_filter="TEST.LOCAL")
+    user_sid = "S-1-5-21-TEST-310"
+    assert user_sid in findings
+    detail = findings[user_sid]
+    assert "cmsql.test.local" in detail
+    assert "CM_P10" in detail
+    assert "cmsql-dr" not in detail
+    assert "CM_DR" not in detail
+
+
+def test_linked_server_empty_target_stub_resolves_to_nothing(clean_neo4j):
+    load_fixture(clean_neo4j, "sccm_priv_esc_linked_server_empty_stub.cypher")
+
+    findings = run_check(SCCMPrivilegeEscalationCheck, clean_neo4j, domain_filter="TEST.LOCAL")
+    assert "S-1-5-21-TEST-311" not in findings
+
+
+def test_linked_server_shared_host_sid_bridges_to_no_instance(clean_neo4j):
+    load_fixture(clean_neo4j, "sccm_priv_esc_linked_server_shared_host_sid.cypher")
+
+    findings = run_check(SCCMPrivilegeEscalationCheck, clean_neo4j, domain_filter="TEST.LOCAL")
+    assert "S-1-5-21-TEST-312" not in findings

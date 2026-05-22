@@ -1,6 +1,4 @@
-// Linked-server pivot where the OpenGraph stub is SID-named. The bridge must
-// fall back to matching the SID prefix because stub.name does not contain
-// srvA.sqlServerName.
+// SID-named stubs fall back to host-SID prefix matching.
 
 CREATE (srvA:MSSQL_Server {
   name: 'lab-sql01.test.local:1433',

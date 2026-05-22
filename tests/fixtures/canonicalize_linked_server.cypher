@@ -1,6 +1,4 @@
-// Source-side linked-server stubs: a MSSQL_Base stub carries each linked
-// edge. The canonicalizer adds the equivalent edge from the real
-// MSSQL_Server that owns the stub's host SID, for both linked-server types.
+// Stub-owned linked-server edges are copied to their canonical MSSQL_Server.
 
 CREATE (sourceAdmin:MSSQL_Server:MSSQL_Base:Base {
   name: 'src-admin.test.local:1433',

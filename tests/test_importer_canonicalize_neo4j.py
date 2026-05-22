@@ -46,8 +46,7 @@ def test_canonicalizer_is_idempotent_on_reimport(clean_neo4j):
     second = importer._canonicalize_mssql_linked_server_edges()
     edges_after_second = _linked_edge_count(clean_neo4j)
 
-    # The count is "merged" (idempotent), so the second run reports the same
-    # number while creating no new relationships in the graph.
+    # MERGE reports ensured edges on re-import without creating duplicates.
     assert first == 2
     assert second == 2
     assert edges_after_first == 4

@@ -1,4 +1,4 @@
-// A low-priv user inherits a SQL login through six nested AD groups.
+// Six nested AD groups prove inherited SQL logins are traversed.
 
 CREATE (u:User {
   name: 'NESTEDUSER@TEST.LOCAL',

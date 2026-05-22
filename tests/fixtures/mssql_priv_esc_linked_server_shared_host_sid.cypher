@@ -1,6 +1,4 @@
-// Two SQL instances share a host SID. The stub objectid carries instance
-// INST2, but its only objectid link to a server is the host SID prefix, which
-// now matches both instances. An ambiguous host SID must bridge to neither.
+// Ambiguous host SID prefixes shared by SQL instances must not bridge.
 
 CREATE (srvA1:MSSQL_Server {
   name: 'shared-host.test.local:1433',

@@ -1,5 +1,4 @@
-// Login ownership of a high-value server role is an escalation path:
-// owning sysadmin lets you add yourself to it.
+// Owning sysadmin is enough to add yourself to the role.
 
 CREATE (srv:MSSQL_Server {
   name: 'sql01.test.local:1433',

@@ -1,5 +1,4 @@
-// Over-match guard: stub for SQL01-BAK must not bridge to srvA whose
-// sqlServerName is just SQL01 (substring CONTAINS would have over-matched).
+// SQL01-BAK must not bridge through a substring match on SQL01.
 
 CREATE (srvA:MSSQL_Server {
   name: 'lab-sql01.test.local:1433',

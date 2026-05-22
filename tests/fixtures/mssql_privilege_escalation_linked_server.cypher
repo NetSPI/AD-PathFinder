@@ -1,7 +1,4 @@
-// Linked-server pivot: low-priv user has a login on srvA, srvA has a
-// LinkedAsAdmin stub pointing at srvB. Stub.name uses uppercase
-// 'LinkedServer:LAB-SQL01\SQL01' while srvA.sqlServerName is lowercase
-// 'lab-sql01\SQL01' to cover the case-mismatch bridge.
+// Case-mismatched linked-server stubs still bridge to the source server.
 
 CREATE (srvA:MSSQL_Server {
   name: 'lab-sql01.test.local:1433',

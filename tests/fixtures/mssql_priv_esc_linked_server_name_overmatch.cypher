@@ -1,6 +1,4 @@
-// Linked-server target overmatch: the stub server is named 'sql01', so it
-// must resolve only to 'sql01.test.local', never to the sibling host
-// 'sql01b.test.local' that an unanchored prefix match would also catch.
+// Stub name sql01 must not match the sibling host sql01b.
 
 CREATE (srvA:MSSQL_Server {
   name: 'lab-src.test.local:1433',

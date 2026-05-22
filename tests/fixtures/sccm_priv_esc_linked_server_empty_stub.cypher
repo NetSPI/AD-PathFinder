@@ -1,5 +1,4 @@
-// An empty-named SCCM linked-server target stub must resolve to nothing, not
-// to an unrelated MSSQL_Server that backs an SCCM site database.
+// Empty SCCM linked-server stub names must not match site database servers.
 
 CREATE (site:SCCM_Site:SCCM_Base:Base {
   siteCode: 'P11',

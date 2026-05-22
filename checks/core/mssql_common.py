@@ -41,7 +41,7 @@ def sql_login_report_holder_filter(
     holder_var="holder",
     candidate_var="candidatePrincipal",
 ):
-    # Expects sql_login_report_holder_expr() to be aliased as reportHolder.
+    # Caller must alias sql_login_report_holder_expr() as reportHolder.
     return f"""WHERE ((reportHolder OR {holder_var}:User OR {holder_var}:Computer){holder_domain_cond})
                OR ({holder_var}:Group AND NOT reportHolder AND EXISTS {{
                     MATCH ({candidate_var})-[:MemberOf*1..6]->({holder_var})
@@ -59,8 +59,7 @@ def primary_label_expr(var):
 
 
 def linked_server_target_resolution(real_var, stub_var):
-    # Delimiter-anchored, non-empty match: a stub named 'sql01' must not
-    # resolve to 'sql01b...', and an empty stub name must resolve to nothing.
+    # Match only exact names or delimiter-anchored host prefixes.
     return (
         f"({stub_var}.name IS NOT NULL AND {stub_var}.name <> '' "
         f"AND (toLower({real_var}.name) = toLower({stub_var}.name) "
@@ -70,8 +69,7 @@ def linked_server_target_resolution(real_var, stub_var):
 
 
 def host_sid_resolves_to_single_server(sid_expr):
-    # Host-SID-prefix bridging is only safe when the prefix maps to one
-    # MSSQL_Server; otherwise the stub could be attributed to a sibling instance.
+    # Avoid bridging ambiguous host SID prefixes shared by sibling instances.
     return (
         f"COUNT {{ MATCH (sidServer:MSSQL_Server) "
         f"WHERE sidServer.objectid CONTAINS ':' "

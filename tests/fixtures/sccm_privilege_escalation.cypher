@@ -1,5 +1,4 @@
-// SCCM privilege escalation fixture. MSSQL edges intentionally omit
-// traversable to match MSSQLHound output.
+// MSSQL edges omit traversable to match MSSQLHound output.
 
 CREATE (site:SCCM_Site:SCCM_Base:Base {
   siteCode: 'P01',

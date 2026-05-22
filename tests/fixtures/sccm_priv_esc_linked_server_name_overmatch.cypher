@@ -1,5 +1,4 @@
-// SCCM linked-server target overmatch: the stub server 'cmsql' must resolve
-// only to 'cmsql.test.local', not the sibling host 'cmsql-dr.test.local'.
+// Stub name cmsql must not match the sibling host cmsql-dr.
 
 CREATE (site:SCCM_Site:SCCM_Base:Base {
   siteCode: 'P10',

@@ -1,6 +1,4 @@
-// An empty-named linked-server target stub must resolve to nothing. An
-// unanchored prefix match treats '' as a prefix of every MSSQL_Server and
-// would attribute a sysadmin path on an unrelated server to this login.
+// Empty linked-server stub names must not match every MSSQL_Server.
 
 CREATE (srvA:MSSQL_Server {
   name: 'empty-src.test.local:1433',

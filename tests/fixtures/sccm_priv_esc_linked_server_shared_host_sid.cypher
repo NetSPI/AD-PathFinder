@@ -1,5 +1,4 @@
-// Two SQL instances share a host SID. The SCCM linked path must bridge to
-// neither when the stub objectid host SID is ambiguous.
+// SCCM linked paths must not bridge ambiguous shared host SID prefixes.
 
 CREATE (site:SCCM_Site:SCCM_Base:Base {
   siteCode: 'P12',

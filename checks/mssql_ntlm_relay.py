@@ -13,6 +13,8 @@ _COMMON_GROUP_NAMES = {
     'USERS',
 }
 
+_MAX_RELAY_PRINCIPALS = 5
+
 
 @check(risk="High", category="MSSQL Server Vulnerable to NTLM Relay", entity="computer", data=[], requires=["mssql"])
 class MSSQLNTLMRelayCheck(MSSQLDomainMixin, Check):
@@ -184,11 +186,16 @@ class MSSQLNTLMRelayCheck(MSSQLDomainMixin, Check):
             principals = [principals]
         if not principals:
             return ""
-        return '\n'.join(
+        shown = principals[:_MAX_RELAY_PRINCIPALS]
+        lines = [
             f"{principal} > MSSQL_Connect > {host_name} > xp_dirtree > "
             f"{service_account} > NTLM_Relay > {relay_target}"
-            for principal in principals
-        )
+            for principal in shown
+        ]
+        remaining = len(principals) - len(shown)
+        if remaining:
+            lines.append(f"(+{remaining} more principals)")
+        return '\n'.join(lines)
 
     def _login_principals(self, logins, high_value_sets=None):
         principals = []

@@ -292,3 +292,20 @@ def test_mssql_ntlm_relay_does_not_collide_across_domains_sharing_netbios_prefix
     ])
 
     assert principals == ["DA@CORP.LOCAL", "DA@CORP.EXAMPLE.COM"]
+
+
+def test_mssql_ntlm_relay_caps_principal_lines_per_server():
+    check = MSSQLNTLMRelayCheck.__new__(MSSQLNTLMRelayCheck)
+
+    principals = [f"USER{i}@TRAINING.LOCAL" for i in range(12)]
+    desc = check._format_relay_path(
+        principals,
+        "SQL01.TRAINING.LOCAL",
+        "SQLSVC@TRAINING.LOCAL",
+        ["WEB01 (Windows Server)"],
+    )
+
+    lines = desc.split("\n")
+    assert sum(1 for line in lines if "xp_dirtree" in line) == 5
+    assert lines[-1] == "(+7 more principals)"
+    assert "USER5@TRAINING.LOCAL" not in desc

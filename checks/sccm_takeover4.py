@@ -44,6 +44,7 @@ class SCCMTakeover4Check(SCCMDomainMixin, Check):
 
             OPTIONAL MATCH (cas_comp:Computer)
             WHERE cas_comp.SCCMSiteSystemRoles IS NOT NULL
+            AND coalesce(cas_comp.enabled, true) = true
             AND any(role IN cas_comp.SCCMSiteSystemRoles
                     WHERE role = 'SMS Site Server@' + parent_site.siteCode)
             WITH parent_site, child_site,
@@ -51,6 +52,7 @@ class SCCMTakeover4Check(SCCMDomainMixin, Check):
 
             MATCH (child_comp:Computer)
             WHERE child_comp.SCCMSiteSystemRoles IS NOT NULL
+            AND coalesce(child_comp.enabled, true) = true
             AND any(role IN child_comp.SCCMSiteSystemRoles
                     WHERE role = 'SMS Site Server@' + child_site.siteCode)
             AND child_comp.SMBSigningRequired = false

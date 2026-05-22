@@ -41,7 +41,8 @@ class SCCMTakeover7Check(Check):
 
         rows = self.query(f"""
             MATCH (role_comp:Computer)
-            WHERE role_comp.SCCMSiteSystemRoles IS NOT NULL{comp_filter}
+            WHERE role_comp.SCCMSiteSystemRoles IS NOT NULL
+            AND coalesce(role_comp.enabled, true) = true{comp_filter}
             UNWIND role_comp.SCCMSiteSystemRoles as role
             WITH role_comp,
                  trim(split(role, '@')[0]) as role_name,

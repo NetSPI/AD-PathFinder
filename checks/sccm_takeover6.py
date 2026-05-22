@@ -21,11 +21,13 @@ class SCCMTakeover6Check(Check):
 
         rows = self.query(f"""
             MATCH (g)-[:CoerceAndRelayToSMB]->(target:Computer)-[:SCCM_AssignAllPermissions]->(site:SCCM_Site)
-            WHERE target.SMBSigningRequired = false {cdf}
+            WHERE target.SMBSigningRequired = false
+            AND coalesce(target.enabled, true) = true {cdf}
             AND any(role IN target.SCCMSiteSystemRoles WHERE role = 'SMS Provider@' + site.siteCode)
 
             OPTIONAL MATCH (ss:Computer)
             WHERE ss.SCCMSiteSystemRoles IS NOT NULL
+            AND coalesce(ss.enabled, true) = true
             AND any(role IN ss.SCCMSiteSystemRoles WHERE role = 'SMS Site Server@' + site.siteCode)
             AND ss.objectid <> target.objectid
 

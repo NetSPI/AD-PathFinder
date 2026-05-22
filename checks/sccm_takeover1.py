@@ -34,6 +34,7 @@ class SCCMTakeover1Check(SCCMDomainMixin, Check):
             OPTIONAL MATCH (login)-[:MSSQL_MemberOf]->(:MSSQL_ServerRole)
                            -[:MSSQL_ControlServer]->(server:MSSQL_Server)
             OPTIONAL MATCH (target:Computer)-[:MSSQL_HostFor]->(server)
+            WHERE coalesce(target.enabled, true) = true
 
             RETURN DISTINCT
                 site.siteCode as site_code,

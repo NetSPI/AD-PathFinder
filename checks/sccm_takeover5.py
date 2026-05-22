@@ -41,6 +41,7 @@ class SCCMTakeover5Check(SCCMDomainMixin, Check):
 
             MATCH (ss_comp:Computer)
             WHERE ss_comp.SCCMSiteSystemRoles IS NOT NULL
+            AND coalesce(ss_comp.enabled, true) = true
             AND any(role IN ss_comp.SCCMSiteSystemRoles
                     WHERE role = 'SMS Site Server@' + site.siteCode)
             WITH site,
@@ -49,6 +50,7 @@ class SCCMTakeover5Check(SCCMDomainMixin, Check):
 
             MATCH (sp_comp:Computer)
             WHERE sp_comp.SCCMSiteSystemRoles IS NOT NULL
+            AND coalesce(sp_comp.enabled, true) = true
             AND any(role IN sp_comp.SCCMSiteSystemRoles
                     WHERE role = 'SMS Provider@' + site.siteCode)
             WITH site, site_server_sids, site_servers,

@@ -27,10 +27,12 @@ class SCCMTakeover2Check(Check):
             MATCH (g)-[:CoerceAndRelayToSMB]->(target:Computer)
                   -[:MSSQL_HostFor]->(:MSSQL_Server)-[:MSSQL_Contains]->(db:MSSQL_Database)
                   -[:SCCM_AssignAllPermissions]->(site:SCCM_Site)
-            WHERE target.SMBSigningRequired = false {cdf}
+            WHERE target.SMBSigningRequired = false
+            AND coalesce(target.enabled, true) = true {cdf}
 
             OPTIONAL MATCH (ss:Computer)
             WHERE ss.SCCMSiteSystemRoles IS NOT NULL
+            AND coalesce(ss.enabled, true) = true
             AND any(role IN ss.SCCMSiteSystemRoles WHERE role = 'SMS Site Server@' + site.siteCode)
             AND ss.objectid <> target.objectid
 

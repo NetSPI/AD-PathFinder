@@ -14,3 +14,10 @@ def test_fires_on_ha_site_server_relay(clean_neo4j):
     assert len(findings) == 1
     assert "S-1-5-21-TEST-1601" in findings
     assert isinstance(findings["S-1-5-21-TEST-1601"], str)
+
+
+def test_no_finding_when_second_site_server_disabled(clean_neo4j):
+    load_fixture(clean_neo4j, "sccm_takeover7_disabled_host.cypher")
+
+    findings = run_check(SCCMTakeover7Check, clean_neo4j, domain_filter="TEST.LOCAL")
+    assert not findings, "disabled site server must not count toward the 2+ HA threshold"

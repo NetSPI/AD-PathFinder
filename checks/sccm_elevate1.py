@@ -22,6 +22,7 @@ class SCCMElevate1Check(Check):
         rows = self.query(f"""
             MATCH (g)-[:CoerceAndRelayToSMB]->(target:Computer)
             WHERE target.SMBSigningRequired = false
+            AND coalesce(target.enabled, true) = true
             AND target.SCCMSiteSystemRoles IS NOT NULL {cdf}
 
             UNWIND target.SCCMSiteSystemRoles as role
@@ -30,6 +31,7 @@ class SCCMElevate1Check(Check):
 
             OPTIONAL MATCH (ss:Computer)
             WHERE ss.SCCMSiteSystemRoles IS NOT NULL
+            AND coalesce(ss.enabled, true) = true
             AND any(r IN ss.SCCMSiteSystemRoles WHERE r = 'SMS Site Server@' + site_code)
             AND ss.objectid <> target.objectid
 

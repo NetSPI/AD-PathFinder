@@ -42,6 +42,7 @@ class SCCMTakeover8Check(Check):
             WHERE
                 ((dc.ldapavailable = true AND dc.ldapsigning = false)
                  OR (dc.ldapsavailable = true AND dc.ldapsepa = false))
+                AND coalesce(dc.enabled, true) = true
                 {cdf}
             WITH dc,
                  (dc.ldapavailable = true AND dc.ldapsigning = false) AS ldap_relay,
@@ -51,6 +52,7 @@ class SCCMTakeover8Check(Check):
             WHERE coalesce(src.webclientrunning, src.WebClientRunning, false) = true
               AND src.domain = dc.domain
               AND src.SCCMSiteSystemRoles IS NOT NULL
+              AND coalesce(src.enabled, true) = true
               AND (
                 any(role IN src.SCCMSiteSystemRoles WHERE role STARTS WITH 'SMS Site Server@')
                 OR any(role IN src.SCCMSiteSystemRoles WHERE role STARTS WITH 'SMS Provider@')

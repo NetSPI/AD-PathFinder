@@ -5,14 +5,6 @@ from typing import List, Optional, Sequence, Tuple
 from .opengraph_identifiers import safe_cypher_identifier
 
 
-OPENGRAPH_EMPTY_ID_POLICY = (
-    "OpenGraph node ids are required. During validation, empty-id nodes may be "
-    "resolved to a same-payload AD node by DNSHostName for collector "
-    "compatibility; unresolved empty-id nodes are skipped and reported as "
-    "import warnings."
-)
-
-
 @dataclass(frozen=True)
 class RequiredRelationship:
     from_label: str

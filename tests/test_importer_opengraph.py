@@ -1959,14 +1959,14 @@ def test_dedupe_mssql_servers_groups_by_full_name_not_short_hostname():
 
 
 def test_canonicalize_mssql_linked_server_edges_uses_sid_prefix(capsys):
-    conn = RecordingConnection(responses=[[{"created": 1}], [{"created": 2}]])
+    conn = RecordingConnection(responses=[[{"merged": 1}], [{"merged": 2}]])
     importer = BloodhoundImporter(conn)
 
-    created = importer._canonicalize_mssql_linked_server_edges()
+    merged = importer._canonicalize_mssql_linked_server_edges()
 
     output = capsys.readouterr().out
-    assert created == 3
-    assert "Canonicalized 3 MSSQL linked-server edge" in output
+    assert merged == 3
+    assert "Merged 3 canonical MSSQL linked-server edge" in output
     queries = [q for q, _ in conn.queries]
     assert any("MSSQL_LinkedTo" in q for q in queries)
     assert any("MSSQL_LinkedAsAdmin" in q for q in queries)

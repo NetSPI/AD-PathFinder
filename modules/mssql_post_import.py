@@ -66,7 +66,9 @@ def dedupe_mssql_servers(connection) -> int:
 
 
 def canonicalize_mssql_linked_server_edges(connection) -> int:
-    created = 0
+    # MERGE is idempotent, so this counts canonical edges ensured this run,
+    # not edges newly created; a re-import reports the same stable count.
+    merged = 0
     for rel_type in ("MSSQL_LinkedTo", "MSSQL_LinkedAsAdmin"):
         rtype = safe_cypher_identifier(rel_type, "relationship type")
         rows = connection.query(f"""
@@ -88,11 +90,11 @@ def canonicalize_mssql_linked_server_edges(connection) -> int:
             MERGE (source)-[new:`{rtype}`]->(target)
             WITH old, new, properties(old) AS old_props, properties(new) AS existing_props
             SET new += old_props SET new += existing_props
-            RETURN count(DISTINCT new) AS created
+            RETURN count(DISTINCT new) AS merged
         """)
         if rows:
-            created += rows[0].get("created", 0) or 0
+            merged += rows[0].get("merged", 0) or 0
 
-    if created:
-        print(f"[*] Canonicalized {created} MSSQL linked-server edge(s)")
-    return created
+    if merged:
+        print(f"[*] Merged {merged} canonical MSSQL linked-server edge(s)")
+    return merged

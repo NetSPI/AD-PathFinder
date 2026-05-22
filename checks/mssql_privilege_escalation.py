@@ -168,7 +168,6 @@ class MSSQLPrivilegeEscalationCheck(Check):
             WHERE ALL(rel IN rels WHERE type(rel) IN $_abuse_edges)
 
             OPTIONAL MATCH (db:MSSQL_Database)-[:MSSQL_Contains]->(target)
-            OPTIONAL MATCH (server:MSSQL_Server {{name: target.SQLServer}})
             OPTIONAL MATCH memberPath = (memberPrincipal)-[:MemberOf*1..6]->(holder)
             WHERE holder:Group AND NOT reportHolder
               AND (memberPrincipal:User OR memberPrincipal:Computer){member_domain_cond}
@@ -177,12 +176,12 @@ class MSSQLPrivilegeEscalationCheck(Check):
                      WHEN reportHolder OR holder:User OR holder:Computer THEN holder
                      ELSE memberPrincipal
                  END AS principal,
-                 holder, startLogin, target, p, rels, db, server, reportHolder, memberPath
+                 holder, startLogin, target, p, rels, db, reportHolder, memberPath
             WHERE principal IS NOT NULL
               AND (reportHolder OR principal:User OR principal:Computer){domain_cond}
               AND (NOT principal:Computer OR coalesce(principal.enabled, true) = true)
 
-            WITH principal, holder, startLogin, target, p, rels, db, server, reportHolder, memberPath,
+            WITH principal, holder, startLogin, target, p, rels, db, reportHolder, memberPath,
                  CASE
                      WHEN reportHolder THEN [split(coalesce(holder.name, ''), '@')[0]] + [node IN nodes(p) | coalesce(node.name, '')]
                      WHEN holder:Group AND memberPath IS NOT NULL
@@ -206,7 +205,7 @@ class MSSQLPrivilegeEscalationCheck(Check):
                      ELSE 'User'
                  END as principalType
 
-            WITH principal, holder, startLogin, target, p, rels, db, server, reportHolder,
+            WITH principal, holder, startLogin, target, p, rels, db, reportHolder,
                  pathNodes, pathEdges, pathLength, principalType,
                  CASE
                      WHEN target:MSSQL_ServerRole THEN 'MSSQL_ServerRole'
@@ -231,7 +230,6 @@ class MSSQLPrivilegeEscalationCheck(Check):
                    db.name as databaseName,
                    db.isTrustworthy as isTrustworthy,
                    db.hasGuestEnabled as hasGuestEnabled,
-                   server.xpCmdShellEnabled as xpCmdShellEnabled,
                    pathNodes,
                    pathEdges,
                    pathLength
@@ -266,7 +264,6 @@ class MSSQLPrivilegeEscalationCheck(Check):
                 'database_name': row.get('databaseName') or '',
                 'is_trustworthy': row.get('isTrustworthy', False),
                 'has_guest_enabled': row.get('hasGuestEnabled', False),
-                'xp_cmdshell_enabled': row.get('xpCmdShellEnabled', False),
                 'path_nodes': row.get('pathNodes') or [],
                 'path_edges': row.get('pathEdges') or [],
                 'path_length': row.get('pathLength') or 0,
@@ -324,7 +321,6 @@ class MSSQLPrivilegeEscalationCheck(Check):
                    target.name as targetName,
                    'MSSQL_ServerRole' as targetType,
                    srvB.name as targetServer,
-                   srvB.xpCmdShellEnabled as xpCmdShellEnabled,
                    CASE
                        WHEN reportHolder THEN [split(coalesce(holder.name, ''), '@')[0], startLogin.name, srvA.name, srvB.name, target.name]
                        WHEN holder:Group AND memberPath IS NOT NULL

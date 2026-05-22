@@ -130,10 +130,8 @@ class SCCMPrivilegeEscalationCheck(MSSQLDomainMixin, SCCMDomainMixin, Check):
                    CASE WHEN principal:Computer THEN 'Computer' ELSE 'User' END AS principalType,
                    coalesce(site.siteCode, site.displayName, site.objectid) AS targetName,
                    'SCCM_Site' AS targetType,
-                   null AS targetPermissions,
                    null AS databaseName,
                    null AS serverName,
-                   false AS xpCmdShellEnabled,
                    [rel IN relationships(p) | type(rel)] AS pathEdges,
                    length(p) AS pathLength,
                    {self._path_node_names_expr('nodes(p)')} AS pathNodeNames,
@@ -158,10 +156,8 @@ class SCCMPrivilegeEscalationCheck(MSSQLDomainMixin, SCCMDomainMixin, Check):
                    CASE WHEN principal:Computer THEN 'Computer' ELSE 'User' END AS principalType,
                    coalesce(adminUser.name, adminUser.objectid) AS targetName,
                    'SCCM_AdminUser' AS targetType,
-                   null AS targetPermissions,
                    null AS databaseName,
                    null AS serverName,
-                   false AS xpCmdShellEnabled,
                    [rel IN relationships(p) | type(rel)] AS pathEdges,
                    length(p) AS pathLength,
                    {self._path_node_names_expr('nodes(p)')} AS pathNodeNames,
@@ -217,7 +213,6 @@ class SCCMPrivilegeEscalationCheck(MSSQLDomainMixin, SCCMDomainMixin, Check):
             WHERE ALL(rel IN rels WHERE type(rel) IN $_sccm_path_edges)
 
             OPTIONAL MATCH (db:MSSQL_Database)-[:MSSQL_Contains]->(target)
-            OPTIONAL MATCH (server:MSSQL_Server {{name: target.SQLServer}})
             OPTIONAL MATCH (impactDb:MSSQL_Database)-[:SCCM_AssignAllPermissions]->(impactSite:SCCM_Site)
             WHERE true{impact_site_cond}
               AND (
@@ -232,7 +227,7 @@ class SCCMPrivilegeEscalationCheck(MSSQLDomainMixin, SCCMDomainMixin, Check):
                      WHEN reportHolder OR holder:User OR holder:Computer THEN holder
                      ELSE memberPrincipal
                  END AS principal,
-                 holder, startLogin, target, db, server, impactDb, impactSite, p, rels, reportHolder, memberPath
+                 holder, startLogin, target, db, impactDb, impactSite, p, rels, reportHolder, memberPath
             WHERE principal IS NOT NULL
               AND (reportHolder OR principal:User OR principal:Computer){domain_cond}
               AND (NOT principal:Computer OR coalesce(principal.enabled, true) = true)
@@ -254,10 +249,8 @@ class SCCMPrivilegeEscalationCheck(MSSQLDomainMixin, SCCMDomainMixin, Check):
                      WHEN target:SCCM_Base THEN 'SCCM'
                      ELSE coalesce({primary_label_expr('target')}, 'Unknown')
                    END AS targetType,
-                   target.explicitPermissions AS targetPermissions,
                    db.name AS databaseName,
                    target.SQLServer AS serverName,
-                   server.xpCmdShellEnabled AS xpCmdShellEnabled,
                    CASE
                      WHEN reportHolder THEN ['MSSQL_HasLogin'] + [rel IN rels | type(rel)]
                      WHEN holder:Group AND memberPath IS NOT NULL
@@ -347,10 +340,8 @@ class SCCMPrivilegeEscalationCheck(MSSQLDomainMixin, SCCMDomainMixin, Check):
                    END AS principalType,
                    sccmServer.name AS targetName,
                    'MSSQL_Server' AS targetType,
-                   null AS targetPermissions,
                    sccmDb.name AS databaseName,
                    sccmServer.name AS serverName,
-                   sccmServer.xpCmdShellEnabled AS xpCmdShellEnabled,
                    pathEdges,
                    CASE
                      WHEN reportHolder THEN length(p) + 2
@@ -427,10 +418,8 @@ class SCCMPrivilegeEscalationCheck(MSSQLDomainMixin, SCCMDomainMixin, Check):
                      WHEN target:MSSQL_DatabaseRole THEN 'MSSQL_DatabaseRole'
                      ELSE 'MSSQL'
                    END AS targetType,
-                   target.explicitPermissions AS targetPermissions,
                    CASE WHEN target:MSSQL_DatabaseRole THEN sccmDb.name ELSE null END AS databaseName,
                    srvB.name AS serverName,
-                   srvB.xpCmdShellEnabled AS xpCmdShellEnabled,
                    CASE
                      WHEN target:MSSQL_DatabaseRole
                      THEN CASE
@@ -608,10 +597,8 @@ class SCCMPrivilegeEscalationCheck(MSSQLDomainMixin, SCCMDomainMixin, Check):
                    END AS principalType,
                    site.siteCode AS targetName,
                    'SCCM_Site' AS targetType,
-                   null AS targetPermissions,
                    null AS databaseName,
                    linked.name AS serverName,
-                   linked.xpCmdShellEnabled AS xpCmdShellEnabled,
                    CASE
                      WHEN holder:Group AND memberPath IS NOT NULL
                          THEN [rel IN relationships(memberPath) | type(rel)] + ['MSSQL_HasLogin'] + coreEdges
@@ -658,9 +645,6 @@ class SCCMPrivilegeEscalationCheck(MSSQLDomainMixin, SCCMDomainMixin, Check):
             MATCH (sccmDb:MSSQL_Database)-[:SCCM_AssignAllPermissions]->(site:SCCM_Site)
             WHERE toLower(split(sccmDb.SQLServer, ':')[0]) = loginHost{site_cond}
 
-            OPTIONAL MATCH (server:MSSQL_Server)
-            WHERE toLower(split(server.name, ':')[0]) = loginHost
-
             RETURN DISTINCT
                    CASE
                        WHEN source:Group THEN 'Group'
@@ -674,7 +658,6 @@ class SCCMPrivilegeEscalationCheck(MSSQLDomainMixin, SCCMDomainMixin, Check):
                    source.objectid AS sourceSid,
                    login.name AS loginName,
                    login.SQLServer AS sqlServer,
-                   server.xpCmdShellEnabled AS xpCmdShellEnabled,
                    sccmDb.name AS sccmImpactDb,
                    site.siteCode AS sccmImpactSite,
                    type(relay) AS relayType
@@ -691,7 +674,6 @@ class SCCMPrivilegeEscalationCheck(MSSQLDomainMixin, SCCMDomainMixin, Check):
                 'target_type': 'MSSQL_Login',
                 'database_name': row.get('sccmImpactDb') or '',
                 'server_name': row.get('sqlServer') or '',
-                'xp_cmdshell_enabled': row.get('xpCmdShellEnabled', False),
                 'path_edges': [row.get('relayType') or 'CoerceAndRelayToMSSQL'],
                 'path_length': 1,
                 'sccm_impact_db': row.get('sccmImpactDb') or '',
@@ -712,7 +694,7 @@ class SCCMPrivilegeEscalationCheck(MSSQLDomainMixin, SCCMDomainMixin, Check):
                  collect(DISTINCT sccmDb.name) AS sccmDatabases,
                  collect(DISTINCT site.siteCode) AS sccmSites
 
-            MATCH (serviceAccount)-[:MSSQL_ServiceAccountFor]->(server:MSSQL_Server {{name: sqlServer}})
+            MATCH (serviceAccount)-[:MSSQL_ServiceAccountFor]->(:MSSQL_Server {{name: sqlServer}})
             WHERE (
                 ((serviceAccount:User OR serviceAccount:Computer OR serviceAccount:Group){service_account_domain_cond})
                 OR NOT (serviceAccount:User OR serviceAccount:Computer OR serviceAccount:Group)
@@ -732,8 +714,7 @@ class SCCMPrivilegeEscalationCheck(MSSQLDomainMixin, SCCMDomainMixin, Check):
                    serviceAccount.objectid AS serviceAccountSid,
                    sqlServer,
                    sccmDatabases,
-                   sccmSites,
-                   server.xpCmdShellEnabled AS xpCmdShellEnabled
+                   sccmSites
         """, name="sccm_service_account_paths")
 
         paths = []
@@ -749,7 +730,6 @@ class SCCMPrivilegeEscalationCheck(MSSQLDomainMixin, SCCMDomainMixin, Check):
                 'target_type': 'MSSQL_Server',
                 'database_name': ', '.join(databases),
                 'server_name': row.get('sqlServer') or '',
-                'xp_cmdshell_enabled': row.get('xpCmdShellEnabled', False),
                 'path_edges': ['MSSQL_ServiceAccountFor'],
                 'path_length': 1,
                 'sccm_impact_db': databases[0] if databases else '',
@@ -767,10 +747,8 @@ class SCCMPrivilegeEscalationCheck(MSSQLDomainMixin, SCCMDomainMixin, Check):
                 'principal_type': row.get('principalType') or '',
                 'target_name': row.get('targetName') or '',
                 'target_type': row.get('targetType') or '',
-                'target_permissions': row.get('targetPermissions') or [],
                 'database_name': row.get('databaseName') or '',
                 'server_name': row.get('serverName') or '',
-                'xp_cmdshell_enabled': row.get('xpCmdShellEnabled', False),
                 'path_edges': row.get('pathEdges') or [],
                 'path_edge_contexts': row.get('pathEdgeContexts') or [],
                 'path_length': row.get('pathLength') or 0,

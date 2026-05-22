@@ -28,6 +28,7 @@ class DisplayTypes(StrEnum):
     ESCALATION_PATHS = 'escalation_paths'
     GROUPED_ESCALATION_PATHS = 'grouped_escalation_paths'
     GROUP_ANALYSIS = 'group_analysis'
+    SHARED_GRAPH_PATHS = 'shared_graph_paths'
 
 
 class DisplaySymbols:

@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 820" role="img" aria-labelledby="title desc">
+  <title id="title">ADPathFinder collector-spanning MSSQL to SCCM path</title>
+  <desc id="desc">A diagram showing J.REPORTER from SharpHound joined to an MSSQL login, assuming ReportSvc, crossing a linked SQL server, executing on the SCCM SQL host as DA, and reaching SCCM Site TRN.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#07111d"/>
+      <stop offset="0.55" stop-color="#101824"/>
+      <stop offset="1" stop-color="#141a22"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#58b7f7"/>
+      <stop offset="0.45" stop-color="#f0c35a"/>
+      <stop offset="0.72" stop-color="#f08a54"/>
+      <stop offset="1" stop-color="#61d89a"/>
+    </linearGradient>
+    <filter id="nodeShadow" x="-20%" y="-25%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#000000" flood-opacity="0.28"/>
+    </filter>
+    <marker id="arrow" markerWidth="14" markerHeight="10" refX="13" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M1 1 L13 5 L1 9 Z" fill="#f0c35a"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="14" markerHeight="10" refX="13" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M1 1 L13 5 L1 9 Z" fill="#61d89a"/>
+    </marker>
+    <style>
+      .headline { fill: #f8fbff; font: 800 32px Inter, Segoe UI, Arial, sans-serif; letter-spacing: 0; }
+      .subhead { fill: #b7c4d5; font: 600 18px Inter, Segoe UI, Arial, sans-serif; letter-spacing: 0; }
+      .collector { font: 800 15px Inter, Segoe UI, Arial, sans-serif; letter-spacing: 0; }
+      .collector-note { fill: #b8c5d6; font: 650 13px Inter, Segoe UI, Arial, sans-serif; letter-spacing: 0; }
+      .legend-title { fill: #dce7f5; font: 800 14px Inter, Segoe UI, Arial, sans-serif; letter-spacing: 0; }
+      .node-title { fill: #fbfdff; font: 800 22px Inter, Segoe UI, Arial, sans-serif; letter-spacing: 0; }
+      .node-title-long { fill: #fbfdff; font: 800 20px Inter, Segoe UI, Arial, sans-serif; letter-spacing: 0; }
+      .node-sub { fill: #c8d4e2; font: 650 15px Inter, Segoe UI, Arial, sans-serif; letter-spacing: 0; }
+      .edge-label { fill: #eef5ff; font: 800 13px Inter, Segoe UI, Arial, sans-serif; letter-spacing: 0; }
+      .edge-note { fill: #d6e0ed; font: 650 13px Inter, Segoe UI, Arial, sans-serif; letter-spacing: 0; }
+      .mini-title { fill: #f9fbff; font: 800 15px Inter, Segoe UI, Arial, sans-serif; letter-spacing: 0; }
+      .mini-sub { fill: #c6d3e2; font: 650 13px Inter, Segoe UI, Arial, sans-serif; letter-spacing: 0; }
+      .node { rx: 12; stroke-width: 2.5; filter: url(#nodeShadow); }
+      .node-ad { fill: #102a43; stroke: #58b7f7; }
+      .node-sql { fill: #302415; stroke: #f0c35a; }
+      .node-host { fill: #312017; stroke: #f08a54; }
+      .node-sccm { fill: #102b20; stroke: #61d89a; }
+      .legend-box { fill: #0e1724; stroke: #35465b; stroke-width: 1.4; rx: 12; }
+      .legend-swatch { stroke-width: 2; rx: 5; }
+      .swatch-ad { fill: #102a43; stroke: #58b7f7; }
+      .swatch-sql { fill: #302415; stroke: #f0c35a; }
+      .swatch-sccm { fill: #102b20; stroke: #61d89a; }
+      .connector { fill: none; stroke: url(#edge); stroke-width: 5; stroke-linecap: round; marker-end: url(#arrow); }
+      .connector-green { fill: none; stroke: #61d89a; stroke-width: 5; stroke-linecap: round; marker-end: url(#arrowGreen); }
+      .context-line { fill: none; stroke: #f08a54; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 7 7; }
+      .context-card { fill: #221b16; stroke: #f08a54; stroke-width: 2; rx: 10; filter: url(#nodeShadow); }
+      .edge-chip { fill: #0e1724; stroke: #47566b; stroke-width: 1.4; rx: 15; }
+      .edge-chip-sql { fill: #211a12; stroke: #f0c35a; stroke-width: 1.5; rx: 15; }
+      .edge-chip-host { fill: #251911; stroke: #f08a54; stroke-width: 1.5; rx: 15; }
+      .edge-chip-sccm { fill: #0f211a; stroke: #61d89a; stroke-width: 1.5; rx: 15; }
+      .thin-rule { stroke: #263344; stroke-width: 1.5; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="820" fill="url(#bg)"/>
+
+  <text x="80" y="68" class="headline">One path, three collectors</text>
+  <text x="80" y="100" class="subhead">A single escalation path assembled from AD identity, SQL privilege, host execution, and SCCM site-control edges.</text>
+
+  <g>
+    <rect x="80" y="132" width="1440" height="58" class="legend-box"/>
+    <text x="108" y="166" class="legend-title">Collector contributions</text>
+
+    <rect x="300" y="150" width="18" height="18" class="legend-swatch swatch-ad"/>
+    <text x="332" y="157" class="collector" fill="#d9f2ff">SharpHound</text>
+    <text x="332" y="178" class="collector-note">AD users, computers, SIDs</text>
+
+    <rect x="625" y="150" width="18" height="18" class="legend-swatch swatch-sql"/>
+    <text x="657" y="157" class="collector" fill="#ffefc1">MSSQLHound</text>
+    <text x="657" y="178" class="collector-note">SQL login, impersonation, link and host-exec evidence</text>
+
+    <rect x="1065" y="150" width="18" height="18" class="legend-swatch swatch-sccm"/>
+    <text x="1097" y="157" class="collector" fill="#d8ffe9">ConfigManBearPig</text>
+    <text x="1097" y="178" class="collector-note">SCCM site permission edges</text>
+  </g>
+
+  <line x1="80" y1="222" x2="1520" y2="222" class="thin-rule"/>
+
+  <g>
+    <rect x="80" y="296" width="195" height="92" class="node node-ad"/>
+    <text x="178" y="333" text-anchor="middle" class="node-title">J.REPORTER</text>
+    <text x="178" y="362" text-anchor="middle" class="node-sub">Domain User</text>
+
+    <rect x="322" y="296" width="195" height="92" class="node node-sql"/>
+    <text x="420" y="333" text-anchor="middle" class="node-title">j.reporter</text>
+    <text x="420" y="362" text-anchor="middle" class="node-sub">MSSQL_Login</text>
+
+    <rect x="564" y="296" width="195" height="92" class="node node-sql"/>
+    <text x="662" y="333" text-anchor="middle" class="node-title">ReportSvc</text>
+    <text x="662" y="362" text-anchor="middle" class="node-sub">Assumed login</text>
+
+    <rect x="806" y="296" width="195" height="92" class="node node-sql"/>
+    <text x="904" y="333" text-anchor="middle" class="node-title">lab-sql01</text>
+    <text x="904" y="362" text-anchor="middle" class="node-sub">Source SQL</text>
+
+    <rect x="1048" y="296" width="195" height="92" class="node node-sql"/>
+    <text x="1146" y="333" text-anchor="middle" class="node-title">sccmdb</text>
+    <text x="1146" y="362" text-anchor="middle" class="node-sub">Linked SQL</text>
+
+    <path d="M275 342 L322 342" class="connector"/>
+    <path d="M517 342 L564 342" class="connector"/>
+    <path d="M759 342 L806 342" class="connector"/>
+    <path d="M1001 342 L1048 342" class="connector"/>
+
+    <rect x="230" y="248" width="138" height="30" class="edge-chip"/>
+    <text x="299" y="268" text-anchor="middle" class="edge-label">MSSQL_HasLogin</text>
+    <rect x="468" y="248" width="146" height="30" class="edge-chip-sql"/>
+    <text x="541" y="268" text-anchor="middle" class="edge-label">MSSQL_ExecuteAs</text>
+    <rect x="715" y="248" width="134" height="30" class="edge-chip-sql"/>
+    <text x="782" y="268" text-anchor="middle" class="edge-label">MSSQL_Connect</text>
+    <rect x="930" y="248" width="190" height="30" class="edge-chip-sql"/>
+    <text x="1025" y="268" text-anchor="middle" class="edge-label">MSSQL_LinkedAsAdmin</text>
+  </g>
+
+  <g>
+    <path d="M1146 388 C1146 448 990 484 990 560" class="connector"/>
+
+    <rect x="940" y="420" width="318" height="64" class="context-card"/>
+    <text x="1099" y="446" text-anchor="middle" class="mini-title">Runs as DA@TRAINING.LOCAL</text>
+    <text x="1099" y="468" text-anchor="middle" class="mini-sub">sccmdb's SQL service account</text>
+    <path d="M1099 484 C1085 505 1048 520 1004 548" class="context-line"/>
+
+    <rect x="810" y="500" width="214" height="30" class="edge-chip-host"/>
+    <text x="917" y="520" text-anchor="middle" class="edge-label">MSSQL_ExecuteOnHost</text>
+
+    <rect x="820" y="560" width="340" height="104" class="node node-ad"/>
+    <text x="990" y="594" text-anchor="middle" class="node-title-long">SCCMDB.TRAINING.LOCAL</text>
+    <text x="990" y="621" text-anchor="middle" class="node-sub">Computer from SharpHound</text>
+    <text x="990" y="644" text-anchor="middle" class="edge-note">command execution target</text>
+
+    <rect x="1276" y="560" width="244" height="104" class="node node-sccm"/>
+    <text x="1398" y="598" text-anchor="middle" class="node-title-long">SCCM_Site(TRN)</text>
+    <text x="1398" y="627" text-anchor="middle" class="node-sub">High-value SCCM target</text>
+
+    <path d="M1160 612 L1276 612" class="connector-green"/>
+    <rect x="1168" y="510" width="268" height="44" class="edge-chip-sccm"/>
+    <text x="1302" y="529" text-anchor="middle" class="edge-label">SCCM_AssignAllPermissions</text>
+    <text x="1302" y="546" text-anchor="middle" class="edge-note">SCCM admin rights on the site</text>
+  </g>
+</svg>

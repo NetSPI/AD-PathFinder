@@ -1,4 +1,14 @@
 from checks.core import Check, check
+from checks.core.high_value import high_value_principal_sets_for_check, is_high_value_principal
+from checks.core.mssql_common import (
+    MSSQL_ABUSE_EDGES,
+    host_sid_resolves_to_single_server,
+    linked_server_target_resolution,
+    primary_label_expr,
+    sql_login_holder_parameters,
+    sql_login_report_holder_expr,
+    sql_login_report_holder_filter,
+)
 
 _INTERNAL_MSSQL_OBJECTS = {
     '##MS_POLICYSIGNINGCERTIFICATE##',
@@ -33,7 +43,7 @@ _HIGH_VALUE_PERMISSIONS = {
 
 _VALUABLE_NODE_TYPES = {
     'MSSQL_ServerRole', 'MSSQL_Login', 'MSSQL_DatabaseRole',
-    'MSSQL_DatabaseUser', 'MSSQL_Server', 'Computer',
+    'MSSQL_DatabaseUser',
 }
 
 _SYSADMIN_SUBORDINATES = {
@@ -41,13 +51,17 @@ _SYSADMIN_SUBORDINATES = {
     'BULKADMIN', 'DISKADMIN', 'DBCREATOR',
 }
 
-@check(risk="High", category="MSSQL Privilege Escalation", entity="user", data=[], requires=["mssql"])
+@check(risk="High", category="MSSQL Privilege Escalation", entity="user", data=[], requires=["mssql"],
+       display="shared_graph_paths")
 class MSSQLPrivilegeEscalationCheck(Check):
 
     def execute(self):
-        admin_users, admin_computers = self.neo4j_data.get_admin_users_and_computers()
-        admin_users_set = set(u.upper() for u in admin_users) if admin_users else set()
-        admin_computers_set = set(c.upper() for c in admin_computers) if admin_computers else set()
+        high_value_users, high_value_computers, high_value_groups = (
+            high_value_principal_sets_for_check(
+                self,
+                query_name="mssql_privilege_escalation_high_value_principals",
+            )
+        )
 
         paths_data = self._fetch_escalation_paths()
         if not paths_data:
@@ -55,8 +69,13 @@ class MSSQLPrivilegeEscalationCheck(Check):
 
         results = {}
         for entity_sid, entity_info in paths_data.items():
-            entity_name = (entity_info.get('name') or '').upper()
-            if entity_name in admin_users_set or entity_name in admin_computers_set:
+            if is_high_value_principal(
+                entity_info.get('name') or '',
+                entity_info.get('principal_type') or '',
+                high_value_users,
+                high_value_computers,
+                high_value_groups,
+            ):
                 continue
             if not entity_info.get('paths'):
                 continue
@@ -114,10 +133,13 @@ class MSSQLPrivilegeEscalationCheck(Check):
 
     def _fetch_escalation_paths(self):
         domain_cond = self._domain_condition("principal")
+        holder_domain_cond = self._domain_condition("holder")
+        candidate_domain_cond = self._domain_condition("candidatePrincipal")
+        member_domain_cond = self._domain_condition("memberPrincipal")
 
         rows = self.query(f"""
-            MATCH (startLogin:MSSQL_Login)<-[:MSSQL_HasLogin]-(principal)
-            WHERE (principal:User OR principal:Computer){domain_cond}
+            MATCH (holder)-[:MSSQL_HasLogin]->(startLogin:MSSQL_Login)
+            WHERE holder:User OR holder:Computer OR holder:Group
 
             MATCH (target)
             WHERE (
@@ -138,44 +160,68 @@ class MSSQLPrivilegeEscalationCheck(Check):
                         'CONTROL', 'ALTER', 'ALTER ANY DATABASE ROLE',
                         'ALTER ANY USER', 'IMPERSONATE', 'TAKE OWNERSHIP'
                     ]))
-                OR (target:Computer)
               )
             AND target <> startLogin
 
-            WITH principal, startLogin, target
+            WITH holder, startLogin, target,
+                 {sql_login_report_holder_expr()} AS reportHolder
+            {sql_login_report_holder_filter(holder_domain_cond, candidate_domain_cond)}
             MATCH p = shortestPath((startLogin)-[rels*1..5]->(target))
-            WHERE ALL(rel IN rels WHERE rel.traversable = true)
+            WHERE ALL(rel IN rels WHERE type(rel) IN $_abuse_edges)
 
             OPTIONAL MATCH (db:MSSQL_Database)-[:MSSQL_Contains]->(target)
-            OPTIONAL MATCH (server:MSSQL_Server {{name: target.SQLServer}})
+            OPTIONAL MATCH memberPath = (memberPrincipal)-[:MemberOf*1..6]->(holder)
+            WHERE holder:Group AND NOT reportHolder
+              AND (memberPrincipal:User OR memberPrincipal:Computer){member_domain_cond}
 
-            WITH principal, startLogin, target, p, rels, db, server,
-                 [node in nodes(p) | coalesce(node.name, '')] as pathNodes,
-                 [rel in rels | type(rel)] as pathEdges,
-                 length(p) as pathLength,
-                 CASE WHEN principal:Computer THEN 'Computer' ELSE 'User' END as principalType
+            WITH CASE
+                     WHEN reportHolder OR holder:User OR holder:Computer THEN holder
+                     ELSE memberPrincipal
+                 END AS principal,
+                 holder, startLogin, target, p, rels, db, reportHolder, memberPath
+            WHERE principal IS NOT NULL
+              AND (reportHolder OR principal:User OR principal:Computer){domain_cond}
+              AND (NOT principal:Computer OR coalesce(principal.enabled, true) = true)
 
-            WITH principal, startLogin, target, p, rels, db, server, pathNodes, pathEdges, pathLength, principalType,
+            WITH principal, holder, startLogin, target, p, rels, db, reportHolder, memberPath,
+                 CASE
+                     WHEN reportHolder THEN [split(coalesce(holder.name, ''), '@')[0]] + [node IN nodes(p) | coalesce(node.name, '')]
+                     WHEN holder:Group AND memberPath IS NOT NULL
+                         THEN {self._ad_member_path_node_names_expr('nodes(memberPath)')} + [node IN nodes(p) | coalesce(node.name, '')]
+                     ELSE [node in nodes(p) | coalesce(node.name, '')]
+                 END as pathNodes,
+                 CASE
+                     WHEN reportHolder THEN ['MSSQL_HasLogin'] + [rel in rels | type(rel)]
+                     WHEN holder:Group AND memberPath IS NOT NULL
+                         THEN [rel IN relationships(memberPath) | type(rel)] + ['MSSQL_HasLogin'] + [rel in rels | type(rel)]
+                     ELSE [rel in rels | type(rel)]
+                 END as pathEdges,
+                 CASE
+                     WHEN reportHolder THEN length(p) + 1
+                     WHEN holder:Group AND memberPath IS NOT NULL THEN length(memberPath) + length(p) + 1
+                     ELSE length(p)
+                 END as pathLength,
+                 CASE
+                     WHEN reportHolder THEN 'Group'
+                     WHEN principal:Computer THEN 'Computer'
+                     ELSE 'User'
+                 END as principalType
+
+            WITH principal, holder, startLogin, target, p, rels, db, reportHolder,
+                 pathNodes, pathEdges, pathLength, principalType,
                  CASE
                      WHEN target:MSSQL_ServerRole THEN 'MSSQL_ServerRole'
                      WHEN target:MSSQL_DatabaseRole THEN 'MSSQL_DatabaseRole'
                      WHEN target:MSSQL_Login THEN 'MSSQL_Login'
                      WHEN target:MSSQL_DatabaseUser THEN 'MSSQL_DatabaseUser'
-                     WHEN target:MSSQL_Server THEN 'MSSQL_Server'
                      WHEN target:MSSQL_Database THEN 'MSSQL_Database'
-                     WHEN target:Computer THEN 'Computer'
                      WHEN target:MSSQL_Base THEN 'MSSQL'
                      WHEN target:SCCM_Base THEN 'SCCM'
-                     ELSE coalesce(
-                         head([label IN labels(target)
-                               WHERE NOT label IN ['Base', 'MSSQL_Base', 'SCCM_Base', 'OpenGraph_Stub', 'ADLocalGroup', 'LocalGroup']
-                               AND NOT label STARTS WITH 'Tag_']),
-                         'Unknown'
-                     )
+                     ELSE coalesce({primary_label_expr('target')}, 'Unknown')
                  END as targetTypeResolved
 
-            RETURN principal.objectid as userSid,
-                   principal.name as userName,
+            RETURN CASE WHEN reportHolder THEN holder.objectid ELSE principal.objectid END as userSid,
+                   CASE WHEN reportHolder THEN holder.name ELSE principal.name END as userName,
                    principalType,
                    startLogin.name as loginName,
                    startLogin.SQLServer as sqlServer,
@@ -186,12 +232,16 @@ class MSSQLPrivilegeEscalationCheck(Check):
                    db.name as databaseName,
                    db.isTrustworthy as isTrustworthy,
                    db.hasGuestEnabled as hasGuestEnabled,
-                   server.xpCmdShellEnabled as xpCmdShellEnabled,
                    pathNodes,
                    pathEdges,
                    pathLength
             ORDER BY userName, pathLength
-        """, name="mssql_privilege_escalation_paths")
+        """, parameters={
+            "_abuse_edges": MSSQL_ABUSE_EDGES,
+            **sql_login_holder_parameters(),
+        }, name="mssql_privilege_escalation_paths")
+
+        rows = list(rows) + self._fetch_linked_server_paths()
 
         paths_by_user = {}
         for row in rows:
@@ -216,13 +266,83 @@ class MSSQLPrivilegeEscalationCheck(Check):
                 'database_name': row.get('databaseName') or '',
                 'is_trustworthy': row.get('isTrustworthy', False),
                 'has_guest_enabled': row.get('hasGuestEnabled', False),
-                'xp_cmdshell_enabled': row.get('xpCmdShellEnabled', False),
                 'path_nodes': row.get('pathNodes') or [],
                 'path_edges': row.get('pathEdges') or [],
                 'path_length': row.get('pathLength') or 0,
             })
 
         return paths_by_user
+
+    def _fetch_linked_server_paths(self):
+        domain_cond = self._domain_condition("principal")
+        holder_domain_cond = self._domain_condition("holder")
+        candidate_domain_cond = self._domain_condition("candidatePrincipal")
+        member_domain_cond = self._domain_condition("memberPrincipal")
+
+        rows = self.query(f"""
+            MATCH (holder)-[:MSSQL_HasLogin]->(startLogin:MSSQL_Login)
+            WHERE holder:User OR holder:Computer OR holder:Group
+
+            WITH holder, startLogin,
+                 {sql_login_report_holder_expr()} AS reportHolder
+            {sql_login_report_holder_filter(holder_domain_cond, candidate_domain_cond)}
+            MATCH (startLogin)-[:MSSQL_Connect]->(srvA:MSSQL_Server)
+            MATCH (stub:MSSQL_Base)-[:MSSQL_LinkedAsAdmin]->(srvB_stub:MSSQL_Server)
+            WHERE toLower(stub.name) ENDS WITH toLower(':' + srvA.sqlServerName)
+               OR (stub.objectid IS NOT NULL AND srvA.objectid IS NOT NULL
+                   AND stub.objectid CONTAINS ':' AND srvA.objectid CONTAINS ':'
+                   AND split(stub.objectid, ':')[0] = split(srvA.objectid, ':')[0]
+                   AND {host_sid_resolves_to_single_server("split(srvA.objectid, ':')[0]")})
+
+            MATCH (srvB:MSSQL_Server)-[:MSSQL_Contains]->(target:MSSQL_ServerRole)
+            WHERE {linked_server_target_resolution('srvB', 'srvB_stub')}
+              AND toUpper(target.name) IN [
+                  'SYSADMIN', 'SECURITYADMIN', 'SERVERADMIN', 'PROCESSADMIN',
+                  'SETUPADMIN', 'BULKADMIN', 'DISKADMIN', 'DBCREATOR'
+              ]
+            OPTIONAL MATCH memberPath = (memberPrincipal)-[:MemberOf*1..6]->(holder)
+            WHERE holder:Group AND NOT reportHolder
+              AND (memberPrincipal:User OR memberPrincipal:Computer){member_domain_cond}
+            WITH CASE
+                     WHEN reportHolder OR holder:User OR holder:Computer THEN holder
+                     ELSE memberPrincipal
+                 END AS principal,
+                 holder, startLogin, reportHolder, srvA, srvB, target, memberPath
+            WHERE principal IS NOT NULL
+              AND (reportHolder OR principal:User OR principal:Computer){domain_cond}
+              AND (NOT principal:Computer OR coalesce(principal.enabled, true) = true)
+            RETURN DISTINCT
+                   CASE WHEN reportHolder THEN holder.objectid ELSE principal.objectid END as userSid,
+                   CASE WHEN reportHolder THEN holder.name ELSE principal.name END as userName,
+                   CASE
+                       WHEN reportHolder THEN 'Group'
+                       WHEN principal:Computer THEN 'Computer'
+                       ELSE 'User'
+                   END as principalType,
+                   startLogin.name as loginName,
+                   startLogin.SQLServer as sqlServer,
+                   target.name as targetName,
+                   'MSSQL_ServerRole' as targetType,
+                   srvB.name as targetServer,
+                   CASE
+                       WHEN reportHolder THEN [split(coalesce(holder.name, ''), '@')[0], startLogin.name, srvA.name, srvB.name, target.name]
+                       WHEN holder:Group AND memberPath IS NOT NULL
+                           THEN {self._ad_member_path_node_names_expr('nodes(memberPath)')} + [startLogin.name, srvA.name, srvB.name, target.name]
+                       ELSE [startLogin.name, srvA.name, srvB.name, target.name]
+                   END as pathNodes,
+                   CASE
+                       WHEN reportHolder THEN ['MSSQL_HasLogin', 'MSSQL_Connect', 'MSSQL_LinkedAsAdmin', 'MSSQL_Contains']
+                       WHEN holder:Group AND memberPath IS NOT NULL
+                           THEN [rel IN relationships(memberPath) | type(rel)] + ['MSSQL_HasLogin', 'MSSQL_Connect', 'MSSQL_LinkedAsAdmin', 'MSSQL_Contains']
+                       ELSE ['MSSQL_Connect', 'MSSQL_LinkedAsAdmin', 'MSSQL_Contains']
+                   END as pathEdges,
+                   CASE
+                       WHEN reportHolder THEN 4
+                       WHEN holder:Group AND memberPath IS NOT NULL THEN length(memberPath) + 4
+                       ELSE 3
+                   END as pathLength
+        """, parameters=sql_login_holder_parameters(), name="mssql_priv_esc_linked_server")
+        return list(rows)
 
     def _normalize_server_name(self, server_name):
         if not server_name:
@@ -240,26 +360,17 @@ class MSSQLPrivilegeEscalationCheck(Check):
             return ""
 
         cleaned = [self._clean_node_name(n) for n in path_nodes]
-
-        has_oscmd_tail = (
-            target_type == 'Computer'
-            and len(path_edges) >= 2
-            and path_edges[-2] == 'MSSQL_ControlServer'
-            and path_edges[-1] == 'MSSQL_ExecuteOnHost'
-        )
+        if server_display and cleaned:
+            cleaned[-1] = self._target_display_name(cleaned[-1], target_type, server_display)
 
         parts = [cleaned[0]]
 
         for i, edge in enumerate(path_edges):
             next_name = cleaned[i + 1] if i + 1 < len(cleaned) else '?'
             parts.append(edge)
-            is_final_host = has_oscmd_tail and i == len(path_edges) - 1
-            parts.append(next_name.lower() if is_final_host else self._display_node(next_name))
+            parts.append(self._display_node(next_name))
 
         chain = " -> ".join(parts)
-
-        if has_oscmd_tail:
-            return chain
 
         if target_type in ('MSSQL_DatabaseRole', 'MSSQL_DatabaseUser') and database_name:
             chain = chain + f" ({database_name})"
@@ -267,15 +378,18 @@ class MSSQLPrivilegeEscalationCheck(Check):
             perms = [p for p in target_permissions if p and p.upper() in _HIGH_VALUE_PERMISSIONS]
             if perms:
                 chain = chain + f" ({', '.join(perms)})"
-        if server_display:
-            chain = chain + f" on {server_display}"
 
         return chain
 
+    def _target_display_name(self, name, target_type, server_display):
+        if target_type in ('MSSQL_ServerRole', 'MSSQL_Login') and '@' not in name:
+            return f"{name}@{server_display}"
+        return name
+
     def _display_node(self, name):
-        upper = name.upper()
-        if upper in _HIGH_VALUE_SERVER_ROLES or upper in _HIGH_VALUE_DB_ROLES:
-            return name.lower()
+        role_name, sep, scope = name.partition('@')
+        if role_name.upper() in _HIGH_VALUE_SERVER_ROLES or role_name.upper() in _HIGH_VALUE_DB_ROLES:
+            return f"{role_name.lower()}{sep}{scope}"
         return name
 
     def _is_valuable_target(self, path_info):
@@ -304,3 +418,6 @@ class MSSQLPrivilegeEscalationCheck(Check):
             node_name = node_name.split('\\')[-1]
         node_name = self._normalize_server_name(node_name)
         return node_name
+
+    def _ad_member_path_node_names_expr(self, nodes_expr):
+        return f"[node IN {nodes_expr} | split(coalesce(node.name, node.objectid, ''), '@')[0]]"

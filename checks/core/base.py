@@ -5,6 +5,22 @@ from typing import Any
 
 from .dependencies import CheckDependencies
 from .constants import DataTypes, EntityTypes, DisplayTypes
+from .display.escalation import (
+    EscalationPathDisplayHandler,
+    GroupedEscalationDisplayHandler,
+)
+from .display.group_analysis import GroupAnalysisDisplayHandler
+from .display.shared_graph_paths import SharedGraphPathDisplayHandler
+from .display.simple import SimpleDisplayHandler
+
+_DISPLAY_HANDLERS = {
+    DisplayTypes.GROUPED_ESCALATION_PATHS: GroupedEscalationDisplayHandler,
+    DisplayTypes.ESCALATION_PATHS: EscalationPathDisplayHandler,
+    DisplayTypes.GROUP_ANALYSIS: GroupAnalysisDisplayHandler,
+    DisplayTypes.SHARED_GRAPH_PATHS: SharedGraphPathDisplayHandler,
+    DisplayTypes.SIMPLE: SimpleDisplayHandler,
+}
+
 
 class VulnerabilityCheck:
     RISK_LEVEL = "High"
@@ -187,15 +203,13 @@ class VulnerabilityCheck:
 
     def get_display_method(self) -> Callable[..., Any]:
         suppress = getattr(self, 'suppress_terminal_output', False)
-        if self.DISPLAY_TYPE == DisplayTypes.GROUPED_ESCALATION_PATHS:
-            from checks.core.display.escalation import GroupedEscalationDisplayHandler
-            return GroupedEscalationDisplayHandler(suppress, self, self.sid_mapper).display
-        elif DataTypes.ESCALATION_PATHS in self.REQUIRED_DATA and self.DISPLAY_TYPE == DisplayTypes.ESCALATION_PATHS:
-            from checks.core.display.escalation import EscalationPathDisplayHandler
-            return EscalationPathDisplayHandler(suppress, self, self.sid_mapper).display
-        elif self.DISPLAY_TYPE == DisplayTypes.GROUP_ANALYSIS:
-            from checks.core.display.group_analysis import GroupAnalysisDisplayHandler
-            return GroupAnalysisDisplayHandler(suppress, self, self.sid_mapper).display
-        else:
-            from checks.core.display.simple import SimpleDisplayHandler
-            return SimpleDisplayHandler(suppress, self, self.sid_mapper).display
+        display_type = DisplayTypes(self.DISPLAY_TYPE)
+
+        if (
+            display_type == DisplayTypes.ESCALATION_PATHS
+            and DataTypes.ESCALATION_PATHS not in self.REQUIRED_DATA
+        ):
+            display_type = DisplayTypes.SIMPLE
+
+        handler_cls = _DISPLAY_HANDLERS[display_type]
+        return handler_cls(suppress, self, self.sid_mapper).display

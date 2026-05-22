@@ -28,6 +28,7 @@ class DiagnosticsCollector:
         self.cross_domain_checks = {}
         self.mssql_sccm = {}
         self.report_generation = {}
+        self.warnings = []
         self.errors = []
         self.args = {}
         self.domains = []
@@ -83,6 +84,16 @@ class DiagnosticsCollector:
         if domain is not None:
             entry["domain"] = domain
         self.errors.append(entry)
+
+    def record_warning(self, source, warning, domain=None):
+        entry = {
+            "source": source,
+            "warning": str(warning),
+            "timestamp": datetime.now().isoformat()
+        }
+        if domain is not None:
+            entry["domain"] = domain
+        self.warnings.append(entry)
 
     def record_escalation_batch(self, domain, batch_num, size, duration_ms,
                                  paths_found, success=True, error=None):
@@ -173,6 +184,7 @@ class DiagnosticsCollector:
             "mssql_sccm": self.mssql_sccm,
             "check_ordering": self.check_order,
             "report_generation": self.report_generation,
+            "warnings": self.warnings,
             "errors": self.errors
         }
 

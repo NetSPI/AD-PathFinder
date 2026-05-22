@@ -21,6 +21,10 @@ from .opengraph_identifiers import (
     reserved_labels,
     safe_cypher_identifier,
 )
+from .mssql_post_import import (
+    canonicalize_mssql_linked_server_edges,
+    dedupe_mssql_servers,
+)
 
 
 _NEO4J_PROPERTY_SCALARS = (str, int, float, bool)
@@ -71,11 +75,13 @@ class BloodhoundImporter:
                  bloodhound_password: Optional[str] = None,
                  base_url: Optional[str] = None,
                  ingestion_timeout_seconds: Optional[int] = None,
-                 request_timeout_seconds: Optional[int] = None):
+                 request_timeout_seconds: Optional[int] = None,
+                 diagnostics=None):
         self.connection = neo4j_conn
         self.user = bloodhound_username
         self.pwd = bloodhound_password
         self.base_url = (base_url or "http://localhost:8080").rstrip('/')
+        self._diagnostics = diagnostics
         self.jwt = ""
         self.ingestion_timeout_seconds = self._resolve_ingestion_timeout(
             ingestion_timeout_seconds
@@ -139,7 +145,7 @@ class BloodhoundImporter:
                     parts.append(f"{seed_total} seed skipped")
                 print(f"[*] Importing {len(entries)} files ({', '.join(parts)})")
 
-                self._upload_json_files(entries)
+                self._upload_json_files(entries, validate_raw=False)
 
                 print("[+] Import completed successfully")
                 return True
@@ -172,6 +178,13 @@ class BloodhoundImporter:
     def _extract_zip(self, zip_path: Path, extract_dir: Path) -> List[Path]:
         try:
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                extract_root = extract_dir.resolve()
+                for member in zip_ref.namelist():
+                    dest = (extract_root / member).resolve()
+                    if not dest.is_relative_to(extract_root):
+                        raise Exception(
+                            f"ZIP entry escapes extract directory: {member}"
+                        )
                 zip_ref.extractall(extract_dir)
         except zipfile.BadZipFile:
             raise Exception("The provided file is not a valid ZIP archive.")
@@ -330,14 +343,13 @@ class BloodhoundImporter:
         data['graph']['nodes'] = out_nodes
         return data
 
-    def _upload_json_files(self, entries: List[JsonEntry]) -> None:
+    def _upload_json_files(self, entries: List[JsonEntry], *, validate_raw: bool = True) -> None:
         # SharpHound goes through CE so its native schema and post-processing
         # remain authoritative. OpenGraph companion/custom collector files are
         # loaded directly below; repeated CE analysis passes can OOM small
         # local stacks and custom-kind uploads can stall with empty statuses.
-        # Raw validation runs before AD companion filtering so malformed
-        # property/metadata containers fail before upload or graph mutation.
-        self._validate_opengraph_entries(entries)
+        if validate_raw:
+            self._validate_opengraph_entries(entries)
         headers = {
             "User-Agent": "bh-automation",
             "Authorization": f"Bearer {self.jwt}",
@@ -380,6 +392,9 @@ class BloodhoundImporter:
         )
         for label in sorted(stub_labels_used):
             self._merge_orphan_stubs(label)
+
+        self._dedupe_mssql_servers()
+        self._canonicalize_mssql_linked_server_edges()
 
         # Evaluate contracts after orphan-stub merge so future requirement
         # shapes see the final post-import graph state rather than a temporary
@@ -534,16 +549,13 @@ class BloodhoundImporter:
                 f"{source_kind!r} is reserved for SharpHound AD nodes"
             )
 
+        skipped_empty_id: List[int] = []
         for index, node in enumerate(nodes):
             if not isinstance(node, dict):
                 raise ValueError(
                     f"OpenGraph {source_name}: node {index} must be an object"
                 )
             context_id = node.get('id', f"index {index}")
-            if not node.get('id'):
-                raise ValueError(
-                    f"OpenGraph {source_name}: node {index} missing required id"
-                )
             if 'kinds' not in node or node.get('kinds') == []:
                 labels = ['Base']
             else:
@@ -563,6 +575,64 @@ class BloodhoundImporter:
                     label,
                     'node label',
                     f"OpenGraph {source_name}: node {context_id!r} label",
+                )
+            if not node.get('id'):
+                skipped_empty_id.append(index)
+
+        if skipped_empty_id:
+            dns_to_ids: Dict[str, Set[str]] = {}
+            skipped_empty_id_set = set(skipped_empty_id)
+            for i, n in enumerate(nodes):
+                if i in skipped_empty_id_set:
+                    continue
+                nid = n.get('id', '')
+                dns = (n.get('properties') or {}).get('DNSHostName', '')
+                if nid and dns:
+                    dns_to_ids.setdefault(str(dns).lower(), set()).add(str(nid))
+
+            ambiguous_dns = {
+                dns for dns, node_ids in dns_to_ids.items()
+                if len(node_ids) > 1
+            }
+            dns_to_id = {
+                dns: next(iter(node_ids))
+                for dns, node_ids in dns_to_ids.items()
+                if dns not in ambiguous_dns
+            }
+
+            resolved = 0
+            ambiguous = 0
+            still_empty: List[int] = []
+            for i in skipped_empty_id:
+                dns = (nodes[i].get('properties') or {}).get('DNSHostName', '')
+                dns_key = str(dns).lower() if dns else ''
+                if dns_key in ambiguous_dns:
+                    ambiguous += 1
+                    still_empty.append(i)
+                    continue
+                matched_id = dns_to_id.get(dns_key) if dns_key else None
+                if matched_id:
+                    nodes[i]['id'] = matched_id
+                    resolved += 1
+                else:
+                    still_empty.append(i)
+
+            if resolved:
+                self._warn_import(
+                    "opengraph_empty_id_resolved",
+                    f"OpenGraph {source_name}: resolved {resolved} empty-id node(s) via DNSHostName"
+                )
+            if ambiguous:
+                self._warn_import(
+                    "opengraph_empty_id_ambiguous_dns",
+                    f"OpenGraph {source_name}: skipped {ambiguous} empty-id node(s) with ambiguous DNSHostName"
+                )
+            if still_empty:
+                skip_set = set(still_empty)
+                graph['nodes'] = [n for i, n in enumerate(nodes) if i not in skip_set]
+                self._warn_import(
+                    "opengraph_empty_id_skipped",
+                    f"OpenGraph {source_name}: skipped {len(still_empty)} node(s) with empty id"
                 )
 
         for index, edge in enumerate(edges):
@@ -684,20 +754,15 @@ class BloodhoundImporter:
         except ValueError as exc:
             raise ValueError(f"{context} has unsupported identifier {value!r}") from exc
 
+    def _warn_import(self, source: str, message: str) -> None:
+        print(f"[!] {message}")
+        if self._diagnostics:
+            self._diagnostics.record_warning(f"import:{source}", message)
+
     def _stub_label_for_source_kind(self, data: dict) -> str:
-        # Defensive guard for direct callers that bypass preflight validation.
-        metadata = data.get('metadata', {})
-        if not isinstance(metadata, dict):
-            raise ValueError("OpenGraph metadata must be an object")
-        source_kind = metadata.get('source_kind', '')
-        if 'source_kind' in metadata and not isinstance(source_kind, str):
-            raise ValueError("OpenGraph metadata.source_kind must be a string")
+        source_kind = data.get('metadata', {}).get('source_kind', '')
         if source_kind and source_kind.strip():
             label = safe_cypher_identifier(source_kind, 'source_kind')
-            if label in reserved_labels():
-                raise ValueError(
-                    f"Unsupported source_kind reserved for AD nodes: {source_kind!r}"
-                )
             return label
         return 'OpenGraph_Stub'
 
@@ -993,6 +1058,12 @@ class BloodhoundImporter:
             f"Unsupported OpenGraph endpoint match strategy: {endpoint.match_by!r}"
         )
 
+    def _dedupe_mssql_servers(self) -> int:
+        return dedupe_mssql_servers(self.connection)
+
+    def _canonicalize_mssql_linked_server_edges(self) -> int:
+        return canonicalize_mssql_linked_server_edges(self.connection)
+
     def _merge_orphan_stubs(self, label: str) -> None:
         # don't copy the collector label onto the AD node — account_analysis would mis-classify it as a stub
         label = safe_cypher_identifier(label, 'orphan stub label')
@@ -1021,8 +1092,10 @@ class BloodhoundImporter:
                 WITH stub, old, target
                 MATCH (real) WHERE real.objectid = stub.objectid
                   AND (real:User OR real:Computer OR real:Group)
-                CREATE (real)-[new:`{rtype}`]->(target)
-                SET new = properties(old)
+                  AND target <> real
+                MERGE (real)-[new:`{rtype}`]->(target)
+                WITH old, new, properties(old) AS old_props, properties(new) AS existing_props
+                SET new += old_props SET new += existing_props
                 DELETE old
             """)
             self.connection.query(f"""
@@ -1031,8 +1104,10 @@ class BloodhoundImporter:
                 WITH source, old, stub
                 MATCH (real) WHERE real.objectid = stub.objectid
                   AND (real:User OR real:Computer OR real:Group)
-                CREATE (source)-[new:`{rtype}`]->(real)
-                SET new = properties(old)
+                  AND source <> real
+                MERGE (source)-[new:`{rtype}`]->(real)
+                WITH old, new, properties(old) AS old_props, properties(new) AS existing_props
+                SET new += old_props SET new += existing_props
                 DELETE old
             """)
 
@@ -1163,45 +1238,34 @@ class BloodhoundImporter:
     _REQUEST_TIMEOUT_ENV = "ADPF_BH_REQUEST_TIMEOUT_SECONDS"
 
     def _resolve_ingestion_timeout(self, timeout: Optional[int]) -> int:
-        raw_timeout = (
-            os.environ.get(self._INGESTION_TIMEOUT_ENV)
-            if timeout is None
-            else timeout
+        return self._resolve_int_timeout(
+            timeout,
+            self._INGESTION_TIMEOUT_ENV,
+            self._INGESTION_TIMEOUT_SECONDS,
         )
-        if raw_timeout is None:
-            raw_timeout = self._INGESTION_TIMEOUT_SECONDS
-        try:
-            resolved = int(raw_timeout)
-        except (TypeError, ValueError) as exc:
-            raise ValueError(
-                f"{self._INGESTION_TIMEOUT_ENV} must be a positive integer "
-                "number of seconds"
-            ) from exc
-        if resolved <= 0:
-            raise ValueError(
-                f"{self._INGESTION_TIMEOUT_ENV} must be a positive integer "
-                "number of seconds"
-            )
-        return resolved
 
     def _resolve_request_timeout(self, timeout: Optional[int]) -> int:
-        raw_timeout = (
-            os.environ.get(self._REQUEST_TIMEOUT_ENV)
-            if timeout is None
-            else timeout
+        return self._resolve_int_timeout(
+            timeout,
+            self._REQUEST_TIMEOUT_ENV,
+            self._REQUEST_TIMEOUT_SECONDS,
         )
+
+    @staticmethod
+    def _resolve_int_timeout(timeout: Optional[int], env_var: str, default: int) -> int:
+        raw_timeout = os.environ.get(env_var) if timeout is None else timeout
         if raw_timeout is None:
-            raw_timeout = self._REQUEST_TIMEOUT_SECONDS
+            raw_timeout = default
         try:
             resolved = int(raw_timeout)
         except (TypeError, ValueError) as exc:
             raise ValueError(
-                f"{self._REQUEST_TIMEOUT_ENV} must be a positive integer "
+                f"{env_var} must be a positive integer "
                 "number of seconds"
             ) from exc
         if resolved <= 0:
             raise ValueError(
-                f"{self._REQUEST_TIMEOUT_ENV} must be a positive integer "
+                f"{env_var} must be a positive integer "
                 "number of seconds"
             )
         return resolved

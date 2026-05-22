@@ -1,4 +1,4 @@
-Output docs/images/demo.mp4
+Output docs/images/demo-slideshow.mp4
 
 Set FontSize 18
 Set Width 900

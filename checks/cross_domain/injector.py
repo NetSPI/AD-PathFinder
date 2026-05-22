@@ -4,7 +4,10 @@ from .base import CrossDomainRegistry
 
 def _display_results(results, category_color, category, content, count, reset_color):
     content.append(f"\n  {category}: {count}")
-    for display_key, description in results.items():
+    total_items = len(results)
+    for index, (display_key, description) in enumerate(results.items()):
+        if total_items > 1 and index > 0:
+            content.append("")
         if not description:
             content.append(f"    ▶ {display_key}")
         elif description.lstrip().startswith(('├─', '└─')):
@@ -18,13 +21,15 @@ def _display_results(results, category_color, category, content, count, reset_co
 
 def _display_grouped_paths(results, category_color, category, content, count, reset_color):
     content.append(f"\n  {category}: {count}")
-    for display_key, description in results.items():
+    for index, (display_key, description) in enumerate(results.items()):
+        if index > 0:
+            content.append("")
         # display_key is "Users with Shared Path (N): user1, user2"
         # description is "Cross-Domain Path: MemberOf -> ..."
         content.append(f"    {display_key}")
         if description:
+            content.append("")
             content.append(f"        {description}")
-        content.append("")  # Blank line between groups
     return content
 
 

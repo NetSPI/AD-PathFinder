@@ -43,7 +43,7 @@ test = ["pytest>=7.0", "pytest-cov>=4.0", "mypy>=1.0"]
 adpathfinder = "modules.main:main"
 
 [tool.pytest.ini_options]
-addopts = "-m 'not integration'"
+addopts = "-m 'not integration and not neo4j'"
 markers = [
     "neo4j: requires a running Neo4j instance (set NEO4J_URI or use the docker one-liner)",
     "integration: optional end-to-end smoke; not part of the default PR run",

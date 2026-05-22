@@ -10,6 +10,7 @@ from modules.BloodhoundImporter import (
     _normalise_neo4j_properties,
 )
 from modules.collectors.mssqlhound import _mssql_identity
+from modules.diagnostics import DiagnosticsCollector
 from modules.opengraph_contracts import (
     OpenGraphRequirement,
     OpenGraphRequirementWarning,
@@ -887,6 +888,9 @@ def test_upload_warns_when_mssql_servers_lack_host_edges(capsys):
     conn = RecordingConnection(
         responses=[
             [],
+            [],
+            [],
+            [],
             [{"missing": 1, "examples": ["sql01.example.local"]}],
         ]
     )
@@ -936,6 +940,9 @@ def test_print_opengraph_requirement_warning_formats_more_suffix_without_used_by
 def test_upload_does_not_warn_when_mssql_host_mapping_exists(capsys):
     conn = RecordingConnection(
         responses=[
+            [],
+            [],
+            [],
             [],
             [{"missing": 0, "examples": []}],
         ]
@@ -994,6 +1001,9 @@ def test_upload_primes_unique_check_owned_opengraph_requirement(
         )
         conn = RecordingConnection(
             responses=[
+                [],
+                [],
+                [],
                 [],
                 [{"missing": 1, "examples": ["build-release"]}],
             ]
@@ -1563,31 +1573,32 @@ def test_deduplicate_by_identity_suppresses_same_instance_views(capsys):
     assert "OpenGraph identity dedupe: skipped 1 duplicate" in capsys.readouterr().out
 
 
-def test_deduplicate_by_identity_matches_normal_mssqlhound_files(capsys):
+def test_deduplicate_by_identity_keeps_distinct_normal_mssqlhound_files(capsys):
     importer = BloodhoundImporter(None)
     zip_path = Path("sample_data/MSSQLHound.zip")
     entries = []
+    expected_identities = {
+        "mssql-lab-sql01.training.local_SQL01.json": "lab-sql01.training.local|instance|sql01",
+        "mssql-sccmdb.training.local.json": "sccmdb.training.local|port|1433",
+    }
+
     with zipfile.ZipFile(zip_path) as archive:
-        for name in (
-            "mssql-lab-sql01.training.local.json",
-            "mssql-lab-sql01.training.local_SQL01.json",
-        ):
+        missing = set(expected_identities) - set(archive.namelist())
+        assert not missing
+
+        for name, expected_identity in expected_identities.items():
             data = json.loads(archive.read(name).decode("utf-8-sig"))
             manifest = importer._select_collector_manifest(data)
             entries.append((Path(name), "opengraph", data))
 
             assert manifest is not None
             assert manifest.source_kind == "MSSQL_Base"
-            assert importer._collector_identity(manifest, data) == (
-                "lab-sql01.training.local|instance|sql01"
-            )
+            assert importer._collector_identity(manifest, data) == expected_identity
 
     deduped = importer._deduplicate_by_identity(entries)
 
-    assert [entry[0].name for entry in deduped] == [
-        "mssql-lab-sql01.training.local_SQL01.json"
-    ]
-    assert "OpenGraph identity dedupe: skipped 1 duplicate" in capsys.readouterr().out
+    assert [entry[0].name for entry in deduped] == list(expected_identities)
+    assert "OpenGraph identity dedupe" not in capsys.readouterr().out
 
 
 @pytest.mark.parametrize(
@@ -1672,3 +1683,296 @@ def test_merge_orphan_stubs_refuses_broad_labels_before_query(label):
         importer._merge_orphan_stubs(label)
 
     assert conn.queries == []
+
+
+def test_opengraph_skips_empty_id_nodes_with_warning(capsys):
+    conn = RecordingConnection()
+    importer = BloodhoundImporter(conn)
+    data = _opengraph(
+        "Mixed_Base",
+        [
+            {"id": "good-1", "kinds": ["Base"], "properties": {"name": "good"}},
+            {"id": "", "kinds": ["Computer", "Base"], "properties": {}},
+            {"id": "good-2", "kinds": ["Base"], "properties": {"name": "alsogood"}},
+        ],
+    )
+
+    importer._validate_opengraph_payloads([("computers.json", data, "opengraph")])
+
+    output = capsys.readouterr().out
+    assert "computers.json: skipped 1 node(s) with empty id" in output
+    assert [n.get("id") for n in data["graph"]["nodes"]] == ["good-1", "good-2"]
+
+
+def test_opengraph_skip_empty_id_does_not_repeat_warning_on_second_validation(capsys):
+    conn = RecordingConnection()
+    importer = BloodhoundImporter(conn)
+    data = _opengraph(
+        "Mixed_Base",
+        [
+            {"id": "good-1", "kinds": ["Base"], "properties": {"name": "good"}},
+            {"id": "", "kinds": ["Computer", "Base"], "properties": {}},
+        ],
+    )
+
+    importer._validate_opengraph_payloads([("computers.json", data, "opengraph")])
+    capsys.readouterr()  # drain
+    importer._validate_opengraph_payloads([("computers.json", data, "opengraph")])
+    second = capsys.readouterr().out
+    assert "skipped" not in second
+
+
+def test_opengraph_resolves_empty_id_via_dnshostname(capsys):
+    conn = RecordingConnection()
+    importer = BloodhoundImporter(conn)
+    data = _opengraph(
+        "Mixed_Base",
+        [
+            {
+                "id": "S-1-5-21-999-1110",
+                "kinds": ["Computer", "Base"],
+                "properties": {"name": "SQL01.LAB.LOCAL", "DNSHostName": "sql01.lab.local"},
+            },
+            {
+                "id": "",
+                "kinds": ["Computer", "Base"],
+                "properties": {"DNSHostName": "SQL01.LAB.LOCAL", "SCCMSiteSystemRoles": "MP,DP"},
+            },
+            {
+                "id": "S-1-5-21-999-1111",
+                "kinds": ["Computer", "Base"],
+                "properties": {"name": "DC01.LAB.LOCAL"},
+            },
+        ],
+    )
+
+    importer._validate_opengraph_payloads([("computers.json", data, "opengraph")])
+
+    output = capsys.readouterr().out
+    assert "resolved 1 empty-id node(s) via DNSHostName" in output
+    assert "skipped" not in output
+    ids = [n.get("id") for n in data["graph"]["nodes"]]
+    assert ids == ["S-1-5-21-999-1110", "S-1-5-21-999-1110", "S-1-5-21-999-1111"]
+
+
+def test_opengraph_empty_id_ambiguous_dns_is_skipped(capsys):
+    conn = RecordingConnection()
+    importer = BloodhoundImporter(conn)
+    data = _opengraph(
+        "Mixed_Base",
+        [
+            {
+                "id": "S-1-5-21-999-1110",
+                "kinds": ["Computer", "Base"],
+                "properties": {"name": "SQL01A.LAB.LOCAL", "DNSHostName": "sql01.lab.local"},
+            },
+            {
+                "id": "S-1-5-21-999-2220",
+                "kinds": ["Computer", "Base"],
+                "properties": {"name": "SQL01B.LAB.LOCAL", "DNSHostName": "SQL01.LAB.LOCAL"},
+            },
+            {
+                "id": "",
+                "kinds": ["Computer", "Base"],
+                "properties": {"DNSHostName": "sql01.lab.local"},
+            },
+        ],
+    )
+
+    importer._validate_opengraph_payloads([("computers.json", data, "opengraph")])
+
+    output = capsys.readouterr().out
+    assert "ambiguous DNSHostName" in output
+    assert "resolved" not in output
+    assert [n.get("id") for n in data["graph"]["nodes"]] == [
+        "S-1-5-21-999-1110",
+        "S-1-5-21-999-2220",
+    ]
+
+
+def test_opengraph_empty_id_no_dns_match_still_skipped(capsys):
+    conn = RecordingConnection()
+    importer = BloodhoundImporter(conn)
+    data = _opengraph(
+        "Mixed_Base",
+        [
+            {
+                "id": "S-1-5-21-999-1110",
+                "kinds": ["Computer", "Base"],
+                "properties": {"name": "SQL01.LAB.LOCAL", "DNSHostName": "sql01.lab.local"},
+            },
+            {
+                "id": "",
+                "kinds": ["Computer", "Base"],
+                "properties": {"DNSHostName": "UNKNOWN.LAB.LOCAL"},
+            },
+        ],
+    )
+
+    importer._validate_opengraph_payloads([("computers.json", data, "opengraph")])
+
+    output = capsys.readouterr().out
+    assert "skipped 1 node(s) with empty id" in output
+    assert "resolved" not in output
+    assert [n.get("id") for n in data["graph"]["nodes"]] == ["S-1-5-21-999-1110"]
+
+
+def test_opengraph_empty_id_warning_recorded_in_diagnostics(capsys):
+    diagnostics = DiagnosticsCollector()
+    conn = RecordingConnection()
+    importer = BloodhoundImporter(conn, diagnostics=diagnostics)
+    data = _opengraph(
+        "Mixed_Base",
+        [
+            {"id": "good-1", "kinds": ["Base"], "properties": {"name": "good"}},
+            {"id": "", "kinds": ["Computer", "Base"], "properties": {}},
+        ],
+    )
+
+    importer._validate_opengraph_payloads([("computers.json", data, "opengraph")])
+
+    capsys.readouterr()
+    assert len(diagnostics.warnings) == 1
+    warning = diagnostics.warnings[0]
+    assert warning["source"] == "import:opengraph_empty_id_skipped"
+    assert "skipped 1 node(s) with empty id" in warning["warning"]
+
+
+def test_opengraph_empty_id_node_with_malformed_kinds_rejected_before_resolution():
+    conn = RecordingConnection()
+    importer = BloodhoundImporter(conn)
+    data = _opengraph(
+        "Mixed_Base",
+        [
+            {
+                "id": "S-1-5-21-999-1110",
+                "kinds": ["Computer", "Base"],
+                "properties": {"name": "SQL01.LAB.LOCAL", "DNSHostName": "sql01.lab.local"},
+            },
+            {
+                "id": "",
+                "kinds": "Bad Label",
+                "properties": {"DNSHostName": "sql01.lab.local"},
+            },
+        ],
+    )
+
+    with pytest.raises(ValueError, match="kinds must be a list"):
+        importer._validate_opengraph_payloads([("computers.json", data, "opengraph")])
+
+
+def test_dedupe_mssql_servers_merges_duplicates(capsys):
+    conn = RecordingConnection(
+        responses=[
+            [
+                {
+                    "canonical": "sccmdb:1433",
+                    "stale": ["S-1-5-21-1105:1433", "SCCMDB.training.local:1433"],
+                }
+            ],
+            [],
+            [{"rtype": "MSSQL_LinkedAsAdmin"}],
+            [],
+            [],
+            [],
+            [],
+            [{"rtype": "MSSQL_Contains"}],
+            [],
+            [],
+            [],
+        ]
+    )
+    importer = BloodhoundImporter(conn)
+
+    importer._dedupe_mssql_servers()
+
+    output = capsys.readouterr().out
+    assert "Merged 2 duplicate MSSQL_Server" in output
+    queries = [q[0] for q in conn.queries]
+    assert any("toLower(s.name)" in q for q in queries)
+    assert any("SET c += sp SET c += cp" in q for q in queries)
+    assert any("DETACH DELETE" in q for q in queries)
+
+
+def test_dedupe_mssql_servers_no_op_when_unique(capsys):
+    conn = RecordingConnection(responses=[[]])
+    importer = BloodhoundImporter(conn)
+
+    importer._dedupe_mssql_servers()
+
+    output = capsys.readouterr().out
+    assert "Merged" not in output
+    assert len(conn.queries) == 1
+
+
+def test_dedupe_mssql_servers_property_merge_lets_canonical_win_on_conflict():
+    conn = RecordingConnection(
+        responses=[
+            [{"canonical": "real:1433", "stale": ["stub:1433"]}],
+            [],
+            [],
+            [],
+        ]
+    )
+    importer = BloodhoundImporter(conn)
+
+    importer._dedupe_mssql_servers()
+
+    node_merge_query = next(q for q, _ in conn.queries if "SET c +=" in q)
+    assert "SET c += sp SET c += cp" in node_merge_query
+    assert node_merge_query.index("SET c += sp") < node_merge_query.index("SET c += cp")
+
+
+def test_dedupe_mssql_servers_relationship_merge_preserves_existing_properties_and_skips_self_loops():
+    conn = RecordingConnection(
+        responses=[
+            [{"canonical": "real:1433", "stale": ["stub:1433"]}],
+            [],
+            [{"rtype": "MSSQL_Contains"}],
+            [],
+            [],
+            [],
+        ]
+    )
+    importer = BloodhoundImporter(conn)
+
+    importer._dedupe_mssql_servers()
+
+    rel_merge_queries = [q for q, _ in conn.queries if "MERGE" in q and "-[new:`MSSQL_Contains`]" in q]
+    assert len(rel_merge_queries) == 2
+    assert "WHERE t <> c" in rel_merge_queries[0]
+    assert "WHERE src <> c" in rel_merge_queries[1]
+    for query in rel_merge_queries:
+        assert "SET new += old_props SET new += existing_props" in query
+        assert query.index("SET new += old_props") < query.index("SET new += existing_props")
+
+
+def test_dedupe_mssql_servers_groups_by_full_name_not_short_hostname():
+    conn = RecordingConnection(responses=[[]])
+    importer = BloodhoundImporter(conn)
+
+    importer._dedupe_mssql_servers()
+
+    groups_query = conn.queries[0][0]
+    assert "toLower(s.name)" in groups_query
+    assert "split(s.name" not in groups_query
+
+
+def test_canonicalize_mssql_linked_server_edges_uses_sid_prefix(capsys):
+    conn = RecordingConnection(responses=[[{"merged": 1}], [{"merged": 2}]])
+    importer = BloodhoundImporter(conn)
+
+    merged = importer._canonicalize_mssql_linked_server_edges()
+
+    output = capsys.readouterr().out
+    assert merged == 3
+    assert "Merged 3 canonical MSSQL linked-server edge" in output
+    queries = [q for q, _ in conn.queries]
+    assert any("MSSQL_LinkedTo" in q for q in queries)
+    assert any("MSSQL_LinkedAsAdmin" in q for q in queries)
+    assert all("split(stub.objectid, ':')[0] AS sourceSid" in q for q in queries)
+    assert all("split(source.objectid, ':')[0] = sourceSid" in q for q in queries)
+    assert all("MERGE (source)-[new:" in q for q in queries)
+    assert all("SET new += old_props SET new += existing_props" in q for q in queries)
+    assert all("NOT stub:MSSQL_Server" in q for q in queries)
+    assert all("count(DISTINCT new)" in q for q in queries)

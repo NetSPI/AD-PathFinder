@@ -1,14 +1,8 @@
-from colorama import Style
+from .base import BaseDisplayHandler
 from ..constants import DataTypes, DisplaySymbols
 
 
-class SimpleDisplayHandler:
-    def __init__(self, suppress_terminal_output=False, check_instance=None, sid_mapper=None):
-        self.suppress_terminal_output = suppress_terminal_output
-        self.check_instance = check_instance
-        self.sid_mapper = sid_mapper
-        self.reset_color = ""
-
+class SimpleDisplayHandler(BaseDisplayHandler):
     def _format_entity_display(self, item_name, item_data):
         display_name = self.sid_mapper.get_display_name(item_name)
         display_name = self._format_with_password(display_name, item_name)
@@ -46,7 +40,6 @@ class SimpleDisplayHandler:
             return display_name
         if not hasattr(self.check_instance, 'account_analysis') or not self.check_instance.account_analysis:
             return display_name
-        # only show passwords with explicit --unsafe-report flag
         if not (hasattr(self.check_instance.account_analysis, 'output_format') and
                 self.check_instance.account_analysis.output_format == 'unsafe'):
             return display_name
@@ -55,19 +48,15 @@ class SimpleDisplayHandler:
             return f"{display_name}:{password_display}"
         return display_name
 
-    def _output_line(self, line, content):
-        if not self.suppress_terminal_output:
-            print(f"{self.reset_color}{line}")
-        content.append(line)
-
     def display(self, results, category_color, category, content, count, reset_color):
         self.reset_color = reset_color
 
-        if not self.suppress_terminal_output:
-            print(f"\n  {Style.BRIGHT}{category_color}{category}: {count}{reset_color}")
-        content.append(f"\n  {category}: {count}")
+        self._emit_heading(category_color, category, content, count, reset_color)
 
-        for item_name, item_data in results.items():
+        total_items = len(results)
+        for index, (item_name, item_data) in enumerate(results.items()):
+            if total_items > 1 and index > 0:
+                self._output_line("", content)
             main_line, desc_line = self._format_entity_display(item_name, item_data)
             self._output_line(main_line, content)
             if desc_line:

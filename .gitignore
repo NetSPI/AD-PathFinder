@@ -37,3 +37,8 @@ config.ini
 .idea/
 .vscode/
 .DS_Store
+
+# Local notes / drafts
+LAB_REFERENCE.md
+BLOG_POST_V*.md
+PRODUCTION_READINESS_PLAN.md

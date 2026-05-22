@@ -71,7 +71,7 @@ def _record_final_inventory(report_dir, domain_name, diagnostics):
     diagnostics.report_generation[domain_name] = report_files
 
 
-def populate_neo4j_passwords(conn, neo4j_data, account_analysis, ntds_file_path, config, bloodhound_username=None, bloodhound_password=None, *, bloodhound_url):
+def populate_neo4j_passwords(conn, neo4j_data, account_analysis, ntds_file_path, config, bloodhound_username=None, bloodhound_password=None, *, bloodhound_url, diagnostics=None):
     # Skip if >85% of cracked accounts already have passwords in Neo4j
     if not hasattr(account_analysis, 'cracked_accounts') or not account_analysis.cracked_accounts:
         return False
@@ -104,7 +104,7 @@ def populate_neo4j_passwords(conn, neo4j_data, account_analysis, ntds_file_path,
             if not bloodhound_enabled or not bloodhound_username or not bloodhound_password:
                 return False
 
-    importer = BloodhoundImporter(conn, bloodhound_username=bloodhound_username, bloodhound_password=bloodhound_password, base_url=bloodhound_url)
+    importer = BloodhoundImporter(conn, bloodhound_username=bloodhound_username, bloodhound_password=bloodhound_password, base_url=bloodhound_url, diagnostics=diagnostics)
     importer.neo4j_data = neo4j_data
     importer.cracked_accounts = account_analysis.cracked_accounts
 
@@ -366,6 +366,17 @@ def main():
 
     resolved = load_resolved_config(config_file)
 
+    diagnostics = None
+    if args.diagnostics:
+        from .diagnostics import DiagnosticsCollector, compute_audit_mode
+        diagnostics = DiagnosticsCollector()
+        diagnostics.args = {
+            "ad": args.ad, "pwd": args.pwd,
+            "ntds": args.ntds is not None, "potfile": args.potfile is not None,
+            "unsafe_report": args.unsafe_report,
+            "mode": compute_audit_mode(args.ad, args.pwd),
+        }
+
     if args.pwd and not args.ntds:
         print("Error: Password audit requires NTDS data. Please provide it using the --ntds parameter.")
         sys.exit(1)
@@ -417,7 +428,7 @@ def main():
                 sys.exit(1)
             bloodhound_enabled = True
 
-        importer = BloodhoundImporter(conn, bloodhound_username=bloodhound_username, bloodhound_password=bloodhound_password, base_url=resolved.bh_url)
+        importer = BloodhoundImporter(conn, bloodhound_username=bloodhound_username, bloodhound_password=bloodhound_password, base_url=resolved.bh_url, diagnostics=diagnostics)
 
         if args.delete:
             standalone_delete = not (args.import_file or args.ad or args.pwd)
@@ -550,17 +561,6 @@ def main():
             ntds_hashes = None
             ntds_file_path = None
 
-    diagnostics = None
-    if args.diagnostics:
-        from .diagnostics import DiagnosticsCollector, compute_audit_mode
-        diagnostics = DiagnosticsCollector()
-        diagnostics.args = {
-            "ad": args.ad, "pwd": args.pwd,
-            "ntds": args.ntds is not None, "potfile": args.potfile is not None,
-            "unsafe_report": args.unsafe_report,
-            "mode": compute_audit_mode(args.ad, args.pwd),
-        }
-
     neo4j_data = Neo4jData(conn, excluded_relationships=excluded_relationships, diagnostics=diagnostics)
     domain_name = neo4j_data.get_domain_name()
     if domain_name == "Unknown Domain":
@@ -612,7 +612,7 @@ def main():
         cracked_users_list = list(accountanalysis.cracked_accounts.keys())
         print(f"[*] Total number of cracked accounts to mark as owned: {len(cracked_users_list)}")
 
-        importer = BloodhoundImporter(conn, bloodhound_username=bloodhound_username, bloodhound_password=bloodhound_password, base_url=resolved.bh_url)
+        importer = BloodhoundImporter(conn, bloodhound_username=bloodhound_username, bloodhound_password=bloodhound_password, base_url=resolved.bh_url, diagnostics=diagnostics)
         importer.neo4j_data = neo4j_data
         importer.cracked_accounts = accountanalysis.cracked_accounts
         importer.mark_as_owned(cracked_users_list, ntds_file_path)
@@ -686,7 +686,7 @@ def main():
                 single_domain_reporting=reporting,
                 single_domain_start_message="Generating reports in directory: {report_dir}"
             )
-            if args.mark_owned and ntds_hashes and ntds_file_path: populate_neo4j_passwords(conn, neo4j_data, accountanalysis, ntds_file_path, config, bloodhound_username, bloodhound_password, bloodhound_url=resolved.bh_url)
+            if args.mark_owned and ntds_hashes and ntds_file_path: populate_neo4j_passwords(conn, neo4j_data, accountanalysis, ntds_file_path, config, bloodhound_username, bloodhound_password, bloodhound_url=resolved.bh_url, diagnostics=diagnostics)
         elif main_choice == "2":
             if ntds_hashes:
                 company_names = reporting.get_company_names()
@@ -696,7 +696,7 @@ def main():
                     single_domain_reporting=reporting,
                     single_domain_completion_message="Password audit reports have been generated in the {report_dir} directory."
                 )
-                if args.mark_owned and ntds_hashes and ntds_file_path: populate_neo4j_passwords(conn, neo4j_data, accountanalysis, ntds_file_path, config, bloodhound_username, bloodhound_password, bloodhound_url=resolved.bh_url)
+                if args.mark_owned and ntds_hashes and ntds_file_path: populate_neo4j_passwords(conn, neo4j_data, accountanalysis, ntds_file_path, config, bloodhound_username, bloodhound_password, bloodhound_url=resolved.bh_url, diagnostics=diagnostics)
             else:
                 print("Password Audit is not available as NTDS data was not provided.")
         

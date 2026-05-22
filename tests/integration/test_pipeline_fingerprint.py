@@ -52,7 +52,7 @@ SENTINEL_CATEGORIES = [
     "ESC1 — Enrollee Supplies Subject",
     "MSSQL Login",
     "MSSQL Privilege Escalation",
-    "SCCM Database Compromise",
+    "SCCM Privilege Escalation",
     "KRBTGT Password Older Than 6 Months",
     "Computers with SMB Signing Disabled",
 ]

@@ -5,8 +5,8 @@
 ADPathfinder is an attack mapping tool for pentesters and red teamers. It analyses SharpHound data and unifies it with OpenGraph plugins to surface attack paths to high-value targets such as Domain Admins and Domain Controllers, starting from low-privileged users and computers. MSSQLHound and ConfigManBearPig are supported natively, extending coverage across AD, ADCS, SCCM, and MSSQL.
 
 <p align="center">
-  <a href="docs/images/demo.mp4">
-    <img src="docs/images/demo.webp" alt="ADPathfinder demo video" width="600">
+  <a href="docs/images/demo-slideshow.mp4">
+    <img src="docs/images/demo-slideshow.webp" alt="ADPathfinder demo video" width="600">
   </a>
 </p>
 
@@ -59,16 +59,16 @@ This stores the BloodHound CE API settings used for import and delete operations
 </details>
 
 <details>
-<summary><strong>Import BloodHound data</strong></summary>
+<summary><strong>Import SharpHound data</strong></summary>
 
 ```bash
-adpathfinder --import BloodHound.zip
+adpathfinder --import SharpHound.zip
 ```
 
-Multiple BloodHound and OpenGraph plugin zip files can be imported in one command:
+Multiple SharpHound and OpenGraph plugin zip files can be imported in one command:
 
 ```bash
-adpathfinder --import BloodHound.zip MSSQLHound.zip ConfigManBearPig.zip
+adpathfinder --import SharpHound.zip MSSQLHound.zip ConfigManBearPig.zip
 ```
 
 </details>
@@ -77,7 +77,7 @@ adpathfinder --import BloodHound.zip MSSQLHound.zip ConfigManBearPig.zip
 <summary><strong>Import data and run a full audit</strong></summary>
 
 ```bash
-adpathfinder -i BloodHound.zip MSSQLHound.zip ConfigManBearPig.zip --ad --pwd Contoso,ContosoIT --ntds ntds.txt -p hashcat.potfile
+adpathfinder -i SharpHound.zip MSSQLHound.zip ConfigManBearPig.zip --ad --pwd Contoso,ContosoIT --ntds ntds.txt -p hashcat.potfile
 ```
 
 Use only the zip files you have. The `--pwd` value is not the AD domain; it is a comma separated list of company, brand, or organisation terms to flag in cracked passwords.
@@ -117,7 +117,7 @@ adpathfinder --ad --pwd Contoso,ContosoIT --ntds ntds.txt -p hashcat.potfile --d
 
 | Stage | What happens |
 | --- | --- |
-| **Ingest** | Merges BloodHound CE and supported OpenGraph zips into one graph. MSSQLHound and ConfigManBearPig data are supported directly |
+| **Ingest** | Merges SharpHound and supported OpenGraph zips into one graph. MSSQLHound and ConfigManBearPig data are supported directly |
 | **Map** | Finds the shortest paths from users and computers to high-value targets. You can [configure the edge set](https://github.com/NetSPI/AD-PathFinder/wiki/Excluded-Relationships) to remove noisy edges like `HasSession` |
 | **Group** | Groups accounts that share a path, so repeated paths are reported as one finding instead of many near-duplicates |
 | **Pair** | Compares NTDS hashes and hashcat potfiles with graph data to show which paths are usable during the assessment |
@@ -131,16 +131,16 @@ adpathfinder --ad --pwd Contoso,ContosoIT --ntds ntds.txt -p hashcat.potfile --d
 ## AD HTML Report
 
 <p align="center">
-  <a href="docs/images/client-report.mp4">
-    <img src="docs/images/client-report.webp" alt="AD HTML report demo video" width="600">
+  <a href="docs/images/ad-report-slideshow.mp4">
+    <img src="docs/images/ad-report-slideshow.webp" alt="AD HTML report demo video" width="600">
   </a>
 </p>
 
 ## Password Audit HTML Report
 
 <p align="center">
-  <a href="docs/images/password-audit.mp4">
-    <img src="docs/images/password-audit.webp" alt="Password audit HTML report demo video" width="600">
+  <a href="docs/images/password-audit-slideshow.mp4">
+    <img src="docs/images/password-audit-slideshow.webp" alt="Password audit HTML report demo video" width="600">
   </a>
 </p>
 

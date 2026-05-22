@@ -178,6 +178,13 @@ class BloodhoundImporter:
     def _extract_zip(self, zip_path: Path, extract_dir: Path) -> List[Path]:
         try:
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                extract_root = extract_dir.resolve()
+                for member in zip_ref.namelist():
+                    dest = (extract_root / member).resolve()
+                    if not dest.is_relative_to(extract_root):
+                        raise Exception(
+                            f"ZIP entry escapes extract directory: {member}"
+                        )
                 zip_ref.extractall(extract_dir)
         except zipfile.BadZipFile:
             raise Exception("The provided file is not a valid ZIP archive.")

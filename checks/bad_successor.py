@@ -25,27 +25,23 @@ class BadSuccessorCheck(Check):
     def check_critical_groups_ou_privileges(self):
         results = {}
 
-        try:
-            ou_privileges = self.get_bad_successor_ou_privileges()
-            
-            for record in ou_privileges:
-                if not record:
-                    continue
-                    
-                entity_sid = record.get('entity_sid', '')
-                rel_type = record.get('relationship_type', '')
-                target_name = record.get('target_name', record.get('ou_name', ''))
-                
-                for sid_pattern, group_display in self.CRITICAL_GROUPS_BY_SID.items():
-                    if entity_sid and self._matches_sid_pattern(entity_sid, sid_pattern):
-                        if rel_type in self.DANGEROUS_PERMISSIONS:
-                            description = f"{group_display} HAS {rel_type.upper()} ON OU: {target_name}"
-                            results[description] = self.finding("", inline=True)
-                        break  # Only match one group per entity
-            
-        except Exception:
-            pass
-        
+        ou_privileges = self.get_bad_successor_ou_privileges()
+
+        for record in ou_privileges:
+            if not record:
+                continue
+
+            entity_sid = record.get('entity_sid', '')
+            rel_type = record.get('relationship_type', '')
+            target_name = record.get('target_name', record.get('ou_name', ''))
+
+            for sid_pattern, group_display in self.CRITICAL_GROUPS_BY_SID.items():
+                if entity_sid and self._matches_sid_pattern(entity_sid, sid_pattern):
+                    if rel_type in self.DANGEROUS_PERMISSIONS:
+                        description = f"{group_display} HAS {rel_type.upper()} ON OU: {target_name}"
+                        results[description] = self.finding("", inline=True)
+                    break  # Only match one group per entity
+
         return results
     
     def _matches_sid_pattern(self, entity_sid, pattern):

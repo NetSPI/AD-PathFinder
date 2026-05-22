@@ -22,11 +22,18 @@ EXTRA_FIXTURES = {
     "cross_domain_escalation_path_via_trust",
     "cross_domain_computer_escalation_path_via_trust",
     "dedupe_mssql_servers",
+    "canonicalize_linked_server",
     "mssql_privilege_escalation_linked_server",
     "mssql_priv_esc_group_owned_login",
     "mssql_priv_esc_linked_server_sid",
     "mssql_priv_esc_linked_server_overmatch",
+    "mssql_priv_esc_linked_server_name_overmatch",
+    "mssql_priv_esc_linked_server_empty_stub",
+    "mssql_priv_esc_linked_server_shared_host_sid",
     "mssql_priv_esc_owns_server_role",
+    "sccm_priv_esc_linked_server_name_overmatch",
+    "sccm_priv_esc_linked_server_empty_stub",
+    "sccm_priv_esc_linked_server_shared_host_sid",
 }
 
 

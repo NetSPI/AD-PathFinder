@@ -1,11 +1,11 @@
 # Tests
 
-Two test surfaces ship in this repo:
+Two main test surfaces ship in this repo:
 
-1. **Framework unit tests** at `tests/test_*.py` — mock-based, no Neo4j required.
-2. **Per-check fixture tests** at `tests/checks/test_*.py` — load Cypher fixtures into a real Neo4j and run a single check against the resulting graph. Marked `@pytest.mark.neo4j`.
+1. **Framework unit tests** — mock-based, no Neo4j required.
+2. **Neo4j fixture tests** — load Cypher fixtures into a real Neo4j. They are selected by the `@pytest.mark.neo4j` marker and may live anywhere under `tests/`.
 
-Both suites run on every PR via CI. Framework tests run across the Python 3.9/3.13 matrix; fixture tests run on 3.13 only against a `neo4j:5-community` service container.
+Both suites run on every PR via CI. Framework tests run across the Python 3.9/3.13 matrix; Neo4j fixture tests run on 3.13 only against a `neo4j:5-community` service container.
 
 ## Running the fast suite (no Docker)
 
@@ -41,7 +41,7 @@ Run the suite:
 ADPF_TEST_ALLOW_WIPE=1 \
 NEO4J_URI=bolt://localhost:17687 \
 NEO4J_USER=neo4j NEO4J_PASSWORD=testpassword \
-pytest tests/checks -m "neo4j and not integration" -v
+pytest tests/ -m "neo4j and not integration" -v
 ```
 
 Tear down:
@@ -53,7 +53,7 @@ docker rm -f adpf-test-neo4j
 ## Adding a test for a new check
 
 1. Create `tests/fixtures/<your_check>.cypher` with a minimal graph that triggers your check. Look at `tests/fixtures/esc3_enrollment_agent.cypher` for the pattern.
-2. Create `tests/checks/test_<your_check>.py` starting with `import pytest` and `pytestmark = pytest.mark.neo4j` at module top, then load the fixture, run the check via `run_check(YourCheck, clean_neo4j)`, and assert the findings. The marker is mandatory — without it the test runs in the fast lane and trips the wipe guard.
+2. Create `tests/checks/test_<your_check>.py` starting with `import pytest` and `pytestmark = pytest.mark.neo4j` at module top, then load the fixture, run the check via `run_check(YourCheck, clean_neo4j)`, and assert the findings. The marker is mandatory — without it the test runs in the fast lane and trips the wipe guard. Non-check Neo4j tests may live elsewhere under `tests/`, but they must use the same marker.
 3. Optionally add a negative fixture (`<your_check>_negative.cypher`) and assert the check stays silent.
 4. Run locally as shown above.
 

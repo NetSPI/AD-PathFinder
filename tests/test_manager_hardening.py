@@ -182,6 +182,11 @@ class TestFrameworkHardeningDiagnostics(unittest.TestCase):
         @check(risk="High", category="MSSQL Test", data=[])
         class MSSQLTestCheck(Check):
             def execute(self):
+                diagnostics.record_query(
+                    name=f"mssql_test_{self.neo4j_data._domain_filter}",
+                    duration_ms=25,
+                    result_count=1,
+                )
                 return {self.neo4j_data._domain_filter: "finding"}
 
         diagnostics = DiagnosticsCollector()
@@ -199,8 +204,45 @@ class TestFrameworkHardeningDiagnostics(unittest.TestCase):
         )
         self.assertEqual(diagnostics.mssql_sccm["training.local"]["mssql"]["checks_run"], 1)
         self.assertEqual(diagnostics.mssql_sccm["training.local"]["mssql"]["total_findings"], 1)
+        self.assertEqual(diagnostics.mssql_sccm["training.local"]["mssql"]["queries_run"], 1)
+        self.assertEqual(diagnostics.mssql_sccm["training.local"]["mssql"]["query_duration_ms"], 25)
+        self.assertEqual(
+            diagnostics.mssql_sccm["training.local"]["mssql"]["slowest_check"]["name"],
+            "MSSQLTestCheck",
+        )
         self.assertEqual(diagnostics.mssql_sccm["secret.training.local"]["mssql"]["checks_run"], 1)
         self.assertEqual(diagnostics.mssql_sccm["secret.training.local"]["mssql"]["total_findings"], 1)
+        self.assertEqual(diagnostics.mssql_sccm["secret.training.local"]["mssql"]["queries_run"], 1)
+
+    def test_platform_summary_groups_sccm_takeover_query_names(self):
+        diagnostics = DiagnosticsCollector()
+        diagnostics.record_check(
+            name="SCCMTestCheck",
+            risk_level="Critical",
+            category="SCCM Test",
+            entity_type="computer",
+            duration_ms=50,
+            entities_input=0,
+            entities_after_filter=0,
+            filtered_breakdown={},
+            findings_count=1,
+            domain="training.local",
+        )
+        diagnostics.record_query(
+            name="takeover1_edge_paths",
+            duration_ms=42,
+            result_count=1,
+        )
+        manager = VulnerabilityFrameworkManager(
+            FakeDomainNeo4jData("training.local"),
+            diagnostics=diagnostics,
+        )
+        manager._diagnostic_query_start_index = 0
+        manager._record_platform_summary()
+        sccm_summary = diagnostics.mssql_sccm["training.local"]["sccm"]
+
+        self.assertEqual(sccm_summary["queries_run"], 1)
+        self.assertEqual(sccm_summary["slowest_query"]["name"], "takeover1_edge_paths")
 
     def test_record_diagnostics_domains_keeps_all_discovered_domains(self):
         diagnostics = DiagnosticsCollector()

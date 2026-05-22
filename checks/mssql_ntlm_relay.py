@@ -1,8 +1,17 @@
 from collections import defaultdict
 
 from checks.core import Check, check
+from checks.core.high_value import high_value_principal_sets_for_check, is_high_value_principal
 from checks.core.platform_mixins import MSSQLDomainMixin
 from modules.opengraph_contracts import mssql_host_mapping_requirement
+
+_COMMON_GROUP_NAMES = {
+    'DOMAIN USERS',
+    'DOMAIN COMPUTERS',
+    'AUTHENTICATED USERS',
+    'EVERYONE',
+    'USERS',
+}
 
 
 @check(risk="High", category="MSSQL Server Vulnerable to NTLM Relay", entity="computer", data=[], requires=["mssql"])
@@ -18,8 +27,10 @@ class MSSQLNTLMRelayCheck(MSSQLDomainMixin, Check):
 
         login_info = self._get_login_info()
         relay_targets = self._get_relay_targets()
+        high_value_sets = self._high_value_start_sets()
 
         per_sid = defaultdict(list)
+        seen_by_sid = defaultdict(set)
         for row in servers:
             display_account = row.get('resolvedAccount')
             if not display_account:
@@ -27,31 +38,33 @@ class MSSQLNTLMRelayCheck(MSSQLDomainMixin, Check):
 
             server_name = row.get('serverName')
             host_sid = row.get('hostSid')
-            host_name = row.get('hostName')
-            if not server_name or not host_sid or not host_name:
+            host_display = row.get('hostName')
+            if not server_name or not host_sid or not host_display:
                 continue
             server_lower = server_name.lower()
-            host_name = host_name.lower()
+            host_name = host_display.lower()
 
             server_logins = login_info.get(server_lower)
             if not server_logins:
                 continue
-
-            who_str = self._format_who_can_login(server_logins)
 
             per_server_targets = [
                 display for target_name, display in relay_targets
                 if target_name != host_name
             ]
 
-            if per_server_targets:
-                relay_str = f"Relay to {', '.join(per_server_targets)}"
-            else:
-                relay_str = "No current relay targets with SMB signing disabled"
-
-            desc = f"{who_str} -> xp_dirtree coercion ({display_account}) -> {relay_str}"
-            if desc not in per_sid[host_sid]:
-                per_sid[host_sid].append(desc)
+            desc = self._format_relay_path(
+                self._login_principals(server_logins, high_value_sets),
+                host_display,
+                display_account,
+                per_server_targets,
+            )
+            if not desc:
+                continue
+            if desc in seen_by_sid[host_sid]:
+                continue
+            seen_by_sid[host_sid].add(desc)
+            per_sid[host_sid].append(desc)
 
         return {sid: self.finding('\n'.join(descs)) for sid, descs in per_sid.items()}
 
@@ -123,8 +136,12 @@ class MSSQLNTLMRelayCheck(MSSQLDomainMixin, Check):
             if server_lower not in info:
                 info[server_lower] = {'users': [], 'computers': [], 'groups': []}
 
+            login_type = (row.get('type') or '').upper()
+
             if name_upper.startswith('BUILTIN\\'):
                 info[server_lower]['groups'].append(name.split('\\', 1)[1])
+            elif login_type == 'WINDOWS_GROUP':
+                info[server_lower]['groups'].append(name)
             elif name.endswith('$'):
                 info[server_lower]['computers'].append(name)
             else:
@@ -155,38 +172,108 @@ class MSSQLNTLMRelayCheck(MSSQLDomainMixin, Check):
             for row in rows if row.get('name')
         ]
 
-    def _format_who_can_login(self, logins):
-        who = []
+    def _high_value_start_sets(self):
+        return high_value_principal_sets_for_check(
+            self,
+            query_name="mssql_ntlm_high_value_start_principals",
+        )
+
+    def _format_relay_path(self, principals, host_name, service_account, relay_targets):
+        relay_target = ', '.join(relay_targets) if relay_targets else "no SMB signing-disabled relay targets"
+        if isinstance(principals, str):
+            principals = [principals]
+        if not principals:
+            return ""
+        return '\n'.join(
+            f"{principal} > MSSQL_Connect > {host_name} > xp_dirtree > "
+            f"{service_account} > NTLM_Relay > {relay_target}"
+            for principal in principals
+        )
+
+    def _login_principals(self, logins, high_value_sets=None):
+        principals = []
         has_broad = False
 
         for group in logins.get('groups', []):
-            if 'DOMAIN USERS' in group.upper():
-                who.append(f"{group} (all domain users)")
+            if self._is_filtered_start_principal(group, 'Group', high_value_sets):
+                continue
+            group_upper = group.upper()
+            if 'DOMAIN USERS' in group_upper:
+                principals.append(group)
                 has_broad = True
-            elif 'DOMAIN COMPUTERS' in group.upper():
-                who.append(f"{group} (all domain computers)")
+            elif 'DOMAIN COMPUTERS' in group_upper:
+                principals.append(group)
                 has_broad = True
-            elif 'AUTHENTICATED USERS' in group.upper():
-                who.append(f"{group} (all authenticated users)")
+            elif 'AUTHENTICATED USERS' in group_upper:
+                principals.append(group)
                 has_broad = True
             else:
-                who.append(group)
+                principals.append(group)
 
         if not has_broad:
-            users = logins.get('users', [])
-            if users:
-                shown = users[:5]
-                if len(users) > 5:
-                    who.append(f"{', '.join(shown)} (+{len(users)-5} more users)")
-                else:
-                    who.append(', '.join(shown))
+            principals.extend(
+                user for user in logins.get('users', [])
+                if not self._is_filtered_start_principal(user, 'User', high_value_sets)
+            )
+            principals.extend(
+                computer for computer in logins.get('computers', [])
+                if not self._is_filtered_start_principal(computer, 'Computer', high_value_sets)
+            )
 
-            computers = logins.get('computers', [])
-            if computers:
-                shown = computers[:3]
-                if len(computers) > 3:
-                    who.append(f"{', '.join(shown)} (+{len(computers)-3} more computers)")
-                else:
-                    who.append(', '.join(shown))
+        return self._dedupe(principals)
 
-        return ' | '.join(who) if who else "Users"
+    def _is_filtered_start_principal(self, name, principal_type, high_value_sets):
+        if not high_value_sets:
+            return False
+        users, computers, groups = high_value_sets
+        if is_high_value_principal(name, principal_type, users, computers, groups):
+            return True
+        if principal_type != 'Group':
+            return is_high_value_principal(name, 'Group', users, computers, groups)
+        return False
+
+    def _dedupe(self, values):
+        seen = set()
+        index_by_key = {}
+        deduped = []
+        for value in values:
+            if not value:
+                continue
+            key = self._principal_dedupe_key(value)
+            if key in seen:
+                if self._prefer_principal_display(value, deduped[index_by_key[key]]):
+                    deduped[index_by_key[key]] = value
+                continue
+            seen.add(key)
+            index_by_key[key] = len(deduped)
+            deduped.append(value)
+        return deduped
+
+    def _principal_dedupe_key(self, value):
+        upper = value.upper()
+        account = upper.split('@', 1)[0]
+        domain = None
+
+        if '@' in upper:
+            _account, domain = upper.split('@', 1)
+        elif '\\' in account:
+            domain, account = account.split('\\', 1)
+
+        if account in _COMMON_GROUP_NAMES:
+            return f"GROUP:{self._normalize_domain_key(domain)}:{account}"
+
+        return f"PRINCIPAL:{self._normalize_domain_key(domain)}:{account}"
+
+    def _normalize_domain_key(self, domain):
+        if not domain:
+            return self._domain_filter.upper() if self._domain_filter else ""
+        if '.' in domain:
+            return domain
+        if self._domain_filter and self._domain_filter.upper().startswith(domain + '.'):
+            return self._domain_filter.upper()
+        return domain
+
+    def _prefer_principal_display(self, candidate, current):
+        candidate_upper = candidate.upper()
+        current_upper = current.upper()
+        return '@' in candidate_upper and '@' not in current_upper

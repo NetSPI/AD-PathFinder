@@ -21,6 +21,12 @@ EXTRA_FIXTURES = {
     "tier0_session_exposure_tier0_computer",
     "cross_domain_escalation_path_via_trust",
     "cross_domain_computer_escalation_path_via_trust",
+    "dedupe_mssql_servers",
+    "mssql_privilege_escalation_linked_server",
+    "mssql_priv_esc_group_owned_login",
+    "mssql_priv_esc_linked_server_sid",
+    "mssql_priv_esc_linked_server_overmatch",
+    "mssql_priv_esc_owns_server_role",
 }
 
 

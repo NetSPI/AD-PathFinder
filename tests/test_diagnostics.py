@@ -100,6 +100,11 @@ class TestRecordError(unittest.TestCase):
         dc.record_error("src", Exception(42))
         self.assertEqual(dc.errors[0]["error"], "42")
 
+    def test_warning_converted_to_string(self):
+        dc = DiagnosticsCollector()
+        dc.record_warning("src", Warning("heads up"))
+        self.assertEqual(dc.warnings[0]["warning"], "heads up")
+
 class TestToDict(unittest.TestCase):
 
     def test_all_top_level_keys(self):
@@ -110,7 +115,7 @@ class TestToDict(unittest.TestCase):
             "checks", "escalation_paths", "escalation_batches",
             "password_audit", "cross_domain_checks", "mssql_sccm",
             "check_ordering", "report_generation",
-            "errors",
+            "warnings", "errors",
         }
         self.assertEqual(set(result.keys()), expected)
 

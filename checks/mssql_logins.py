@@ -136,8 +136,6 @@ class MSSQLLoginsCheck(MSSQLDomainMixin, Check):
                     if dinfo['permissions']:
                         sub.append(f"Permissions: {', '.join(dinfo['permissions'])}")
 
-                    if 'MSSQL_ControlDB' in dinfo['capabilities']:
-                        sub.append("ATTACK PATH: Full database control")
                     if 'MSSQL_GrantAnyDBPermission' in dinfo['capabilities']:
                         sub.append("ATTACK PATH: Can grant any database permission")
 

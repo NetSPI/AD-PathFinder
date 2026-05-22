@@ -1,12 +1,9 @@
-from colorama import Style
+from .base import BaseDisplayHandler
 
 
-class GroupAnalysisDisplayHandler:
+class GroupAnalysisDisplayHandler(BaseDisplayHandler):
     def __init__(self, suppress_terminal_output=False, check_instance=None, sid_mapper=None):
-        self.suppress_terminal_output = suppress_terminal_output
-        self.check_instance = check_instance
-        self.sid_mapper = sid_mapper
-        self.reset_color = ""
+        super().__init__(suppress_terminal_output, check_instance, sid_mapper)
         self._account_analysis = getattr(check_instance, 'account_analysis', None)
 
     def display(self, results, category_color, category, content, count, reset_color):
@@ -15,9 +12,7 @@ class GroupAnalysisDisplayHandler:
         display_groups = {k: v for k, v in results.items() if not k.startswith("___")}
         group_count = len(display_groups)
 
-        if not self.suppress_terminal_output:
-            print(f"\n  {Style.BRIGHT}{category_color}{category}: {group_count}{reset_color}")
-        content.append(f"\n  {category}: {group_count}")
+        self._emit_heading(category_color, category, content, group_count, reset_color)
 
         enhanced_data_ci = {k.upper(): k for k in enhanced_data.keys()}
 
@@ -41,6 +36,9 @@ class GroupAnalysisDisplayHandler:
             for idx, path_obj in enumerate(paths):
                 if not isinstance(path_obj, dict):
                     continue
+
+                if path_count > 1 and idx > 0:
+                    self._output_line("", content)
 
                 is_last = idx == path_count - 1
                 path_prefix = "      └─" if is_last else "      ├─"
@@ -109,8 +107,3 @@ class GroupAnalysisDisplayHandler:
                 content
             )
         self._output_line(f"{cont_prefix}    └─ {esc_str}", content)
-
-    def _output_line(self, line, content):
-        if not self.suppress_terminal_output:
-            print(f"{self.reset_color}{line}")
-        content.append(line)

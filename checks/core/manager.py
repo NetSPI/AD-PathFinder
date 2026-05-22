@@ -12,6 +12,7 @@ class VulnerabilityFrameworkManager:
         self.account_analysis = account_analysis
         self._diagnostics = diagnostics
         self._diagnostic_domain = getattr(neo4j_data, '_domain_filter', None)
+        self._diagnostic_query_start_index = 0
         self.shared_cache = {
             DataTypes.ESCALATION_PATHS: has_escalation_path_results or {},
             DataTypes.FULL_ESCALATION_PATHS: full_escalation_cache or {}
@@ -35,6 +36,7 @@ class VulnerabilityFrameworkManager:
         self._check_datasource_availability()
 
         if self._diagnostics:
+            self._diagnostic_query_start_index = len(self._diagnostics.queries)
             self._record_entity_summary()
 
         runnable = [c for c in CheckRegistry.get_all_checks() if not self._should_skip(c)]
@@ -96,7 +98,7 @@ class VulnerabilityFrameworkManager:
     
     def _preload_data_type(self, data_type):
         if data_type in self.shared_cache:
-            return  # Already cached
+            return
             
         loader_methods = {
             DataTypes.COMPUTERS: 'get_all_computers_with_attributes',
@@ -278,15 +280,48 @@ class VulnerabilityFrameworkManager:
         if not mssql and not sccm:
             return
         domain_key = self._diagnostic_domain or self.neo4j_data.get_domain_name()
+        queries = self._diagnostics.queries[self._diagnostic_query_start_index:]
         bucket = {}
         if mssql:
-            bucket["mssql"] = {
-                "checks_run": len(mssql),
-                "total_findings": sum(c['findings_count'] for c in mssql),
-            }
+            bucket["mssql"] = self._platform_perf_summary(
+                mssql,
+                self._queries_matching(queries, ("mssql",))
+            )
         if sccm:
-            bucket["sccm"] = {
-                "checks_run": len(sccm),
-                "total_findings": sum(c['findings_count'] for c in sccm),
-            }
+            bucket["sccm"] = self._platform_perf_summary(
+                sccm,
+                self._queries_matching(
+                    queries,
+                    ("sccm", "takeover", "elevate", "pxe", "management_points")
+                )
+            )
         self._diagnostics.mssql_sccm[domain_key] = bucket
+
+    def _queries_matching(self, queries, markers):
+        return [
+            q for q in queries
+            if any(marker in (q.get("name") or "").lower() for marker in markers)
+        ]
+
+    def _platform_perf_summary(self, checks, queries):
+        slowest_check = max(checks, key=lambda c: c.get('duration_ms') or 0)
+        summary = {
+            "checks_run": len(checks),
+            "total_findings": sum(c['findings_count'] for c in checks),
+            "check_duration_ms": round(sum(c.get('duration_ms') or 0 for c in checks), 1),
+            "slowest_check": {
+                "name": slowest_check.get("name"),
+                "duration_ms": slowest_check.get("duration_ms") or 0,
+            },
+            "queries_run": len(queries),
+            "query_duration_ms": round(sum(q.get('duration_ms') or 0 for q in queries), 1),
+            "slowest_query": None,
+        }
+        if queries:
+            slowest_query = max(queries, key=lambda q: q.get('duration_ms') or 0)
+            summary["slowest_query"] = {
+                "name": slowest_query.get("name"),
+                "duration_ms": slowest_query.get("duration_ms") or 0,
+                "result_count": slowest_query.get("result_count") or 0,
+            }
+        return summary

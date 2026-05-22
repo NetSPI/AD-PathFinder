@@ -70,11 +70,11 @@ def test_sccm_takeover6_visible_to_manager(clean_neo4j):
     assert not check_errors, f"Unexpected check errors: {check_errors}"
 
 
-def test_mssql_sccm_visible_to_manager(clean_neo4j):
+def test_sccm_privilege_escalation_visible_to_manager(clean_neo4j):
     display_content, stats_content, check_errors = _run_manager(
-        clean_neo4j, fixture="mssql_sccm.cypher",
+        clean_neo4j, fixture="sccm_privilege_escalation.cypher",
     )
-    category = "SCCM Database Compromise"
+    category = "SCCM Privilege Escalation"
     block = _find_block(display_content, category)
     _assert_block_structure(block, category)
     _assert_stats_mirror(display_content, stats_content, category)

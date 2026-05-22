@@ -12,6 +12,29 @@ import pytest
 from modules.neo4j_connection import Neo4jConnection
 
 
+DEFAULT_NEO4J_TEST_URI = "bolt://localhost:17687"
+DEFAULT_NEO4J_TEST_PASSWORD = "testpassword"
+
+
+def _delete_in_batches(conn, cypher, batch_size=500):
+    while True:
+        rows = conn.query(cypher, parameters={"batch_size": batch_size})
+        deleted = rows[0].get("deleted", 0) if rows else 0
+        if not deleted:
+            break
+
+
+def _wipe_neo4j(conn):
+    _delete_in_batches(
+        conn,
+        "MATCH ()-[r]->() WITH r LIMIT $batch_size DELETE r RETURN count(*) AS deleted",
+    )
+    _delete_in_batches(
+        conn,
+        "MATCH (n) WITH n LIMIT $batch_size DELETE n RETURN count(*) AS deleted",
+    )
+
+
 def _bloodhound_default_port(uri):
     try:
         parsed = urlparse(uri)
@@ -30,7 +53,7 @@ def neo4j_conn():
             "Set the env var only when NEO4J_URI points at a disposable test instance."
         )
 
-    uri = os.environ.get("NEO4J_URI", "bolt://localhost:17687")
+    uri = os.environ.get("NEO4J_URI", DEFAULT_NEO4J_TEST_URI)
 
     if _bloodhound_default_port(uri):
         in_ci = os.environ.get("GITHUB_ACTIONS") == "true"
@@ -43,7 +66,7 @@ def neo4j_conn():
             )
 
     user = os.environ.get("NEO4J_USER", "neo4j")
-    password = os.environ.get("NEO4J_PASSWORD", "testpassword")
+    password = os.environ.get("NEO4J_PASSWORD", DEFAULT_NEO4J_TEST_PASSWORD)
     conn = Neo4jConnection(uri, user, password)
     assert conn.is_connected(), f"Neo4j not reachable at {uri}"
     yield conn
@@ -52,6 +75,6 @@ def neo4j_conn():
 
 @pytest.fixture
 def clean_neo4j(neo4j_conn):
-    neo4j_conn.query("MATCH (n) DETACH DELETE n")
+    _wipe_neo4j(neo4j_conn)
     yield neo4j_conn
-    neo4j_conn.query("MATCH (n) DETACH DELETE n")
+    _wipe_neo4j(neo4j_conn)

@@ -1,53 +1,51 @@
 from collections import defaultdict
-from colorama import Style
-from ..constants import DataTypes, DisplaySymbols, is_sid
+from .base import BaseDisplayHandler
+from ..constants import DataTypes, DisplaySymbols, EntityTypes, is_sid
 from modules.node_type_cache import extract_ad_report_type_from_labels
 
 
-class EscalationPathDisplayHandler:
-    def __init__(self, suppress_terminal_output=False, check_instance=None, sid_mapper=None):
-        self.suppress_terminal_output = suppress_terminal_output
-        self.check_instance = check_instance
-        self.sid_mapper = sid_mapper
+def _extract_display_info(description):
+    if not description:
+        return ""
+    if " (" in description and description.endswith(")"):
+        return description.split(" (")[-1][:-1]
+    return description
 
+
+class EscalationPathDisplayHandler(BaseDisplayHandler):
     def display(self, results, category_color, category, content, count, reset_color):
-        if not self.suppress_terminal_output:
-            print(f"\n  {Style.BRIGHT}{category_color}{category}: {count}{reset_color}")
-        content.append(f"\n  {category}: {count}")
+        self._emit_heading(category_color, category, content, count, reset_color)
 
-        for entity_identifier, item_data in results.items():
+        total_items = len(results)
+        for index, (entity_identifier, item_data) in enumerate(results.items()):
+            if total_items > 1 and index > 0:
+                self._emit("", content)
+
             if isinstance(item_data, dict):
                 description = item_data.get('description', '')
             else:
                 description = item_data
 
-            display_info = description.split(" (")[-1][:-1] if " (" in description and description.endswith(")") else description if description else ""
+            display_info = _extract_display_info(description)
             display_name = self.sid_mapper.get_display_name(entity_identifier)
 
             if display_info:
                 line = f"{DisplaySymbols.MAIN_ITEM}{display_name} ({display_info})"
             else:
                 line = f"{DisplaySymbols.MAIN_ITEM}{display_name}"
-            if not self.suppress_terminal_output:
-                print(line)
-            content.append(line)
+            self._emit(line, content)
 
             escalation_paths = self._get_escalation_path_details(entity_identifier)
             if escalation_paths:
-                # path is [Node, Rel, Node, Rel, Node] — count relationships not elements
                 steps = len(escalation_paths) // 2
                 final_target = escalation_paths[-1] if escalation_paths else "Unknown"
 
                 leads_line = f"         {DisplaySymbols.PATH_CONNECTOR} LEADS TO{DisplaySymbols.PATH_ARROW}{final_target} (via {steps} steps)"
-                if not self.suppress_terminal_output:
-                    print(leads_line)
-                content.append(leads_line)
+                self._emit(leads_line, content)
 
                 path_str = DisplaySymbols.PATH_ARROW.join(escalation_paths)
                 path_line = f"            {DisplaySymbols.PATH_CONNECTOR} {path_str}"
-                if not self.suppress_terminal_output:
-                    print(path_line)
-                content.append(path_line)
+                self._emit(path_line, content)
 
         return content
 
@@ -86,7 +84,6 @@ class EscalationPathDisplayHandler:
 
     def _format_escalation_path(self, full_path):
         path_elements = []
-        # fullPath is interleaved: node, rel, node, rel, ..., final_node
         for item in full_path:
             if isinstance(item, dict):
                 formatted_node = self._format_path_node(item)
@@ -115,22 +112,15 @@ class EscalationPathDisplayHandler:
         return None
 
 
-class GroupedEscalationDisplayHandler:
-    def __init__(self, suppress_terminal_output=False, check_instance=None, sid_mapper=None):
-        self.suppress_terminal_output = suppress_terminal_output
-        self.check_instance = check_instance
-        self.sid_mapper = sid_mapper
-
+class GroupedEscalationDisplayHandler(BaseDisplayHandler):
     def display(self, results, category_color, category, content, count, reset_color):
         if not results:
             return content
 
-        if not self.suppress_terminal_output:
-            print(f"\n  {Style.BRIGHT}{category_color}{category}: {count}{reset_color}")
-        content.append(f"\n  {category}: {count}")
+        self._emit_heading(category_color, category, content, count, reset_color)
 
         entity_type = getattr(self.check_instance, 'ENTITY_TYPE', 'user')
-        entity_label = "Computers" if entity_type == 'computer' else "Users"
+        entity_label = "Computers" if entity_type == EntityTypes.COMPUTER else "Users"
 
         path_to_entities = defaultdict(set)
 
@@ -154,20 +144,20 @@ class GroupedEscalationDisplayHandler:
             reverse=True
         )
 
-        for path_str, entities_set in sorted_paths:
+        for index, (path_str, entities_set) in enumerate(sorted_paths):
+            if index > 0:
+                self._emit("", content)
+
             sorted_entities = sorted(entities_set)
             entities_str = ", ".join(sorted_entities)
             entities_count = len(entities_set)
 
             line1 = f"    {entity_label} with Shared Path ({entities_count}): {entities_str}"
-            if not self.suppress_terminal_output:
-                print(line1)
-            content.append(line1)
+            self._emit(line1, content)
 
-            line2 = f"        Common Escalation Path: {path_str}\n"
-            if not self.suppress_terminal_output:
-                print(line2)
-            content.append(line2)
+            self._emit("", content)
+            line2 = f"        Common Escalation Path: {path_str}"
+            self._emit(line2, content)
 
         return content
 

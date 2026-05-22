@@ -1043,17 +1043,14 @@ class Neo4jData(EscalationPathsMixin, GroupAnalysisMixin, DomainFilterMixin):
         WITH count(DISTINCT dc) > 0 AS has2025DC
         WHERE has2025DC = true
         
-        // Query for OU privileges only - BadSuccessor focuses on OU control
-        MATCH p = (ou:OU)<-[r:WriteDacl|Owns|GenericAll|WriteOwner]-(n:Base)
-        WHERE NOT ((n:Tag_Tier_Zero) OR COALESCE(n.system_tags, '') CONTAINS 'admin_tier_0')
-        RETURN 'OU' AS target_type,
-               ou.name AS target_name,
+        MATCH (target)<-[r:WriteDacl|Owns|GenericAll|WriteOwner]-(n:Base)
+        WHERE (target:OU OR target:Container)
+          AND NOT ((n:Tag_Tier_Zero) OR COALESCE(n.system_tags, '') CONTAINS 'admin_tier_0')
+          AND COALESCE(n.enabled, true) = true
+        RETURN CASE WHEN target:OU THEN 'OU' ELSE 'Container' END AS target_type,
+               target.name AS target_name,
                n.name AS entity_name,
-               n.objectid AS entity_sid,
-               labels(n) AS entity_labels,
-               type(r) AS relationship_type,
-               null AS gpo_linked_domain,
-               ou.name AS ou_name
+               type(r) AS relationship_type
         """
         
         result = self.conn.query(badsuccessor_query, name="get_bad_successor_ou_privileges")

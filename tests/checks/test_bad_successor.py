@@ -6,13 +6,20 @@ from tests.check_harness import load_fixture, run_check
 pytestmark = pytest.mark.neo4j
 
 
-def test_fires_on_default_group_with_ou_privilege(clean_neo4j):
+def test_flags_non_tier0_control_of_ous_and_containers(clean_neo4j):
     load_fixture(clean_neo4j, "bad_successor.cypher")
 
     findings = run_check(BadSuccessorCheck, clean_neo4j, domain_filter="TEST.LOCAL")
     assert BadSuccessorCheck.RISK_LEVEL == "High"
-    assert len(findings) == 1
+    assert len(findings) == 2
 
-    key = list(findings.keys())[0]
-    assert "DOMAIN USERS" in key and "GENERICALL" in key
-    assert isinstance(findings[key], dict) and "inline_description" in findings[key]
+    assert "DOMAIN USERS@TEST.LOCAL HAS GENERICALL ON OU: WORKSTATIONS@TEST.LOCAL" in findings
+    assert ("HELPDESK@TEST.LOCAL HAS WRITEDACL ON CONTAINER: "
+            "MANAGED SERVICE ACCOUNTS@TEST.LOCAL") in findings
+
+    keys = "\n".join(findings)
+    assert "STALE" not in keys          # disabled principal excluded
+    assert "DOMAIN ADMINS" not in keys  # Tier-0 principal excluded
+
+    sample = findings["DOMAIN USERS@TEST.LOCAL HAS GENERICALL ON OU: WORKSTATIONS@TEST.LOCAL"]
+    assert isinstance(sample, dict) and "inline_description" in sample

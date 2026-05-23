@@ -1031,13 +1031,16 @@ class Neo4jData(EscalationPathsMixin, GroupAnalysisMixin, DomainFilterMixin):
         WITH count(DISTINCT dc) > 0 AS has2025DC
         WHERE has2025DC = true
         
-        MATCH (target)<-[r:WriteDacl|Owns|GenericAll|WriteOwner]-(n:Base)
+        MATCH (target)<-[r:WriteDacl|Owns|GenericAll|WriteOwner]-(n)
         WHERE (target:OU OR target:Container){target_domain}
+          AND (n:User OR n:Computer OR n:Group)
           AND NOT ((n:Tag_Tier_Zero) OR COALESCE(n.system_tags, '') CONTAINS 'admin_tier_0')
           AND COALESCE(n.enabled, true) = true
         RETURN CASE WHEN target:OU THEN 'OU' ELSE 'Container' END AS target_type,
-               target.name AS target_name,
-               n.name AS entity_name,
+               coalesce(target.name, target.objectid, 'Unknown') AS target_name,
+               coalesce(n.name, n.objectid, 'Unknown') AS entity_name,
+               target.objectid AS target_id,
+               n.objectid AS entity_id,
                type(r) AS relationship_type
         """
         

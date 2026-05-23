@@ -23,13 +23,19 @@ class SCCMTakeover1Check(SCCMDomainMixin, Check):
     )
 
     def execute(self):
+        source_domain_cond = self._domain_condition("g")
         sdf = self._site_domain_condition()
         rows = self.query(f"""
             MATCH (g)-[relay:CoerceAndRelayToMSSQL]->(login)
                   -[:MSSQL_MemberOf|MSSQL_IsMappedTo|MSSQL_ControlServer
                     |MSSQL_ControlDB|MSSQL_Contains
                     |SCCM_AssignAllPermissions*1..6]->(site:SCCM_Site)
-            WHERE true {sdf}
+            WHERE (
+                ((g:User OR g:Computer OR g:Group){source_domain_cond})
+                OR NOT (g:User OR g:Computer OR g:Group)
+              )
+              AND (NOT g:Computer OR coalesce(g.enabled, true) = true)
+              AND true{sdf}
 
             OPTIONAL MATCH (login)-[:MSSQL_MemberOf]->(:MSSQL_ServerRole)
                            -[:MSSQL_ControlServer]->(server:MSSQL_Server)

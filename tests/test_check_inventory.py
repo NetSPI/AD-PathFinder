@@ -15,6 +15,7 @@ EXTRA_TEST_FILES = {"test_manager_smoke.py"}
 
 EXTRA_FIXTURES = {
     "bad_successor_foreign_dc",
+    "bad_successor_fallback_names",
     "sccm_takeover7_disabled_host",
     "esc1_vulnerable_template_manager_approval",
     "esc3_enrollment_agent_manager_approval",
@@ -33,6 +34,7 @@ EXTRA_FIXTURES = {
     "mssql_priv_esc_linked_server_empty_stub",
     "mssql_priv_esc_linked_server_shared_host_sid",
     "mssql_priv_esc_owns_server_role",
+    "sccm_takeover1_source_filter",
     "sccm_priv_esc_linked_server_name_overmatch",
     "sccm_priv_esc_linked_server_empty_stub",
     "sccm_priv_esc_linked_server_shared_host_sid",

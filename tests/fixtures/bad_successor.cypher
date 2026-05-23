@@ -82,6 +82,11 @@ CREATE (otherHelpdesk:Group:Base {
   domain: 'OTHER.LOCAL'
 });
 
+CREATE (stub:MSSQL_Base:OpenGraph_Stub:Base {
+  name: 'LinkedServer:SQL01',
+  objectid: 'MSSQL-STUB-1'
+});
+
 MATCH (dc:Computer {objectid: 'S-1-5-21-TEST-4101'}),
       (dcGroup:Group {objectid: 'S-1-5-21-TEST-516'})
 CREATE (dc)-[:MemberOf]->(dcGroup);
@@ -109,3 +114,7 @@ CREATE (da)-[:GenericAll]->(ou);
 MATCH (otherHelpdesk:Group {objectid: 'S-1-5-21-OTHER-1601'}),
       (otherOu:OU {objectid: 'OTHER-OU-WORKSTATIONS'})
 CREATE (otherHelpdesk)-[:GenericAll]->(otherOu);
+
+MATCH (stub:MSSQL_Base {objectid: 'MSSQL-STUB-1'}),
+      (ou:OU {objectid: 'TEST-OU-WORKSTATIONS'})
+CREATE (stub)-[:GenericAll]->(ou);

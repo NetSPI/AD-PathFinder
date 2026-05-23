@@ -6,7 +6,7 @@ ADPathfinder is an attack mapping tool for pentesters and red teamers. It analys
 
 <p align="center">
   <a href="docs/images/demo-slideshow.mp4">
-    <img src="docs/images/demo-slideshow.webp" alt="ADPathfinder demo video" width="760">
+    <img src="docs/images/demo-slideshow.webp" alt="ADPathfinder CLI demo showing grouped risk findings and attack paths" width="1000">
   </a>
 </p>
 
@@ -132,7 +132,7 @@ adpathfinder --ad --pwd Contoso,ContosoIT --ntds ntds.txt -p hashcat.potfile --d
 
 <p align="center">
   <a href="docs/images/ad-report-slideshow.mp4">
-    <img src="docs/images/ad-report-slideshow.webp" alt="AD HTML report demo video" width="760">
+    <img src="docs/images/ad-report-slideshow.webp" alt="ADPathFinder AD report walkthrough showing overview, mitigation, and confirmation steps" width="1000">
   </a>
 </p>
 
@@ -140,7 +140,7 @@ adpathfinder --ad --pwd Contoso,ContosoIT --ntds ntds.txt -p hashcat.potfile --d
 
 <p align="center">
   <a href="docs/images/password-audit-slideshow.mp4">
-    <img src="docs/images/password-audit-slideshow.webp" alt="Password audit HTML report demo video" width="760">
+    <img src="docs/images/password-audit-slideshow.webp" alt="ADPathFinder password audit report walkthrough showing cracked categories, policy compliance, password lengths, and roastable accounts" width="1000">
   </a>
 </p>
 

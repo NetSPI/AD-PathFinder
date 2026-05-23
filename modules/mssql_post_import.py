@@ -76,16 +76,21 @@ def canonicalize_mssql_linked_server_edges(connection) -> int:
               AND stub.objectid IS NOT NULL
               AND stub.objectid CONTAINS ':'
             WITH old, target, split(stub.objectid, ':')[0] AS sourceSid
+            CALL {{
+                WITH sourceSid
+                MATCH (sidServer:MSSQL_Server)
+                WHERE sidServer.objectid IS NOT NULL
+                  AND sidServer.objectid CONTAINS ':'
+                  AND split(sidServer.objectid, ':')[0] = sourceSid
+                RETURN count(sidServer) AS sidCount
+            }}
+            WITH old, target, sourceSid, sidCount
+            WHERE sidCount = 1
             MATCH (source:MSSQL_Server)
             WHERE source.objectid IS NOT NULL
               AND source.objectid CONTAINS ':'
               AND split(source.objectid, ':')[0] = sourceSid
               AND source <> target
-              AND COUNT {{
-                MATCH (sidServer:MSSQL_Server)
-                WHERE sidServer.objectid CONTAINS ':'
-                  AND split(sidServer.objectid, ':')[0] = sourceSid
-              }} = 1
             MERGE (source)-[new:`{rtype}`]->(target)
             WITH old, new, properties(old) AS old_props, properties(new) AS existing_props
             SET new += old_props SET new += existing_props

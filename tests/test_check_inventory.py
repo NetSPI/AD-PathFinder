@@ -14,6 +14,7 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures"
 EXTRA_TEST_FILES = {"test_manager_smoke.py"}
 
 EXTRA_FIXTURES = {
+    "sccm_takeover7_disabled_host",
     "esc1_vulnerable_template_manager_approval",
     "esc3_enrollment_agent_manager_approval",
     "esc6_user_specifies_san_manager_approval",

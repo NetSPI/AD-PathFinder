@@ -54,7 +54,7 @@ jobs:
     timeout-minutes: 20
     services:
       neo4j:
-        image: neo4j:5-community
+        image: neo4j:4.4
         env:
           NEO4J_AUTH: neo4j/testpassword
           NEO4J_PLUGINS: '[]'

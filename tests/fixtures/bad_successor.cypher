@@ -1,7 +1,7 @@
 // BadSuccessor: a Windows Server 2025 DC opens the gate, then the check flags
 // every enabled, non-Tier-0 principal with full control over an OU or Container.
 // Positives: Domain Users -> OU, Helpdesk -> Container.
-// Negatives: a disabled user and a Tier-0 group are excluded.
+// Negatives: a disabled user, a Tier-0 group, and a different-domain OU are excluded.
 
 CREATE (dc:Computer:Base {
   name: 'DC2025.TEST.LOCAL',
@@ -16,6 +16,21 @@ CREATE (dcGroup:Group:Base {
   name: 'DOMAIN CONTROLLERS@TEST.LOCAL',
   objectid: 'S-1-5-21-TEST-516',
   domain: 'TEST.LOCAL'
+});
+
+CREATE (otherDc:Computer:Base {
+  name: 'DC2025.OTHER.LOCAL',
+  objectid: 'S-1-5-21-OTHER-4101',
+  samaccountname: 'DC2025$',
+  enabled: true,
+  domain: 'OTHER.LOCAL',
+  operatingsystem: 'Windows Server 2025 Standard'
+});
+
+CREATE (otherDcGroup:Group:Base {
+  name: 'DOMAIN CONTROLLERS@OTHER.LOCAL',
+  objectid: 'S-1-5-21-OTHER-516',
+  domain: 'OTHER.LOCAL'
 });
 
 CREATE (ou:OU:Base {
@@ -55,9 +70,25 @@ CREATE (da:Group:Base:Tag_Tier_Zero {
   domain: 'TEST.LOCAL'
 });
 
+CREATE (otherOu:OU:Base {
+  name: 'OTHER WORKSTATIONS@OTHER.LOCAL',
+  objectid: 'OTHER-OU-WORKSTATIONS',
+  domain: 'OTHER.LOCAL'
+});
+
+CREATE (otherHelpdesk:Group:Base {
+  name: 'OTHER HELPDESK@OTHER.LOCAL',
+  objectid: 'S-1-5-21-OTHER-1601',
+  domain: 'OTHER.LOCAL'
+});
+
 MATCH (dc:Computer {objectid: 'S-1-5-21-TEST-4101'}),
       (dcGroup:Group {objectid: 'S-1-5-21-TEST-516'})
 CREATE (dc)-[:MemberOf]->(dcGroup);
+
+MATCH (otherDc:Computer {objectid: 'S-1-5-21-OTHER-4101'}),
+      (otherDcGroup:Group {objectid: 'S-1-5-21-OTHER-516'})
+CREATE (otherDc)-[:MemberOf]->(otherDcGroup);
 
 MATCH (du:Group {objectid: 'S-1-5-21-TEST-513'}),
       (ou:OU {objectid: 'TEST-OU-WORKSTATIONS'})
@@ -74,3 +105,7 @@ CREATE (stale)-[:GenericAll]->(ou);
 MATCH (da:Group {objectid: 'S-1-5-21-TEST-512'}),
       (ou:OU {objectid: 'TEST-OU-WORKSTATIONS'})
 CREATE (da)-[:GenericAll]->(ou);
+
+MATCH (otherHelpdesk:Group {objectid: 'S-1-5-21-OTHER-1601'}),
+      (otherOu:OU {objectid: 'OTHER-OU-WORKSTATIONS'})
+CREATE (otherHelpdesk)-[:GenericAll]->(otherOu);

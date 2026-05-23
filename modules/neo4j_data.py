@@ -1020,31 +1020,19 @@ class Neo4jData(EscalationPathsMixin, GroupAnalysisMixin, DomainFilterMixin):
         if not force_refresh and hasattr(self, 'bad_successor_cache') and self.bad_successor_cache is not None:
             return self.bad_successor_cache
 
-        # no 2025 DC = no BadSuccessor; skip the OU scan
-        dc_check_query = """
+        dc_domain = self._domain_condition("dc")
+        target_domain = self._domain_condition("target")
+
+        badsuccessor_query = f"""
         MATCH (dc:Computer)-[:MemberOf*1..]->(g:Group)
         WHERE dc.operatingsystem =~ '(?i).*WINDOWS SERVER 2025.*'
           AND g.name =~ '(?i).*DOMAIN CONTROLLERS.*'
-          AND dc.enabled = true
-        RETURN count(DISTINCT dc) as dc_count
-        """
-
-        dc_result = self.conn.query(dc_check_query, name="get_bad_successor_dc_check")
-
-        if not dc_result or not dc_result[0] or dc_result[0].get('dc_count', 0) == 0:
-            self.bad_successor_cache = []
-            return self.bad_successor_cache
-
-        badsuccessor_query = """
-        MATCH (dc:Computer)-[:MemberOf*1..]->(g:Group)
-        WHERE dc.operatingsystem =~ '(?i).*WINDOWS SERVER 2025.*'
-          AND g.name =~ '(?i).*DOMAIN CONTROLLERS.*'
-          AND dc.enabled = true
+          AND dc.enabled = true{dc_domain}
         WITH count(DISTINCT dc) > 0 AS has2025DC
         WHERE has2025DC = true
         
         MATCH (target)<-[r:WriteDacl|Owns|GenericAll|WriteOwner]-(n:Base)
-        WHERE (target:OU OR target:Container)
+        WHERE (target:OU OR target:Container){target_domain}
           AND NOT ((n:Tag_Tier_Zero) OR COALESCE(n.system_tags, '') CONTAINS 'admin_tier_0')
           AND COALESCE(n.enabled, true) = true
         RETURN CASE WHEN target:OU THEN 'OU' ELSE 'Container' END AS target_type,

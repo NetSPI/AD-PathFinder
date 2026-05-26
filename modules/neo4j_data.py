@@ -929,6 +929,7 @@ class Neo4jData(EscalationPathsMixin, GroupAnalysisMixin, DomainFilterMixin):
             'GPLink', 'WriteGPLink', 'GoldenCert', 'ManageCA', 'ManageCertificates',
             'CoerceToTGT', 'CoerceAndRelayNTLMToADCS',
             'CoerceAndRelayNTLMToSMB', 'CoerceAndRelayNTLMToLDAP', 'CoerceAndRelayNTLMToLDAPS',
+            'CoerceAndRelayToSMB', 'CoerceAndRelayToAdminService',
             'AbuseTGTDelegation', 'CrossForestTrust'
         ]
         

@@ -41,6 +41,7 @@ class GroupAnalysisMixin:
                            "GPLink", "WriteGPLink", "GoldenCert", "ManageCA", "ManageCertificates",
                            "CoerceToTGT", "CoerceAndRelayNTLMToADCS",
                            "CoerceAndRelayNTLMToSMB", "CoerceAndRelayNTLMToLDAP", "CoerceAndRelayNTLMToLDAPS",
+                           "CoerceAndRelayToSMB", "CoerceAndRelayToAdminService",
                            "AbuseTGTDelegation", "CrossForestTrust"]
 
         filtered_rels = [rel for rel in interesting_rels if rel.upper() not in self.excluded_relationships]
@@ -227,6 +228,7 @@ class GroupAnalysisMixin:
                            "GPLink", "WriteGPLink", "GoldenCert", "ManageCA", "ManageCertificates",
                            "CoerceToTGT", "CoerceAndRelayNTLMToADCS",
                            "CoerceAndRelayNTLMToSMB", "CoerceAndRelayNTLMToLDAP", "CoerceAndRelayNTLMToLDAPS",
+                           "CoerceAndRelayToSMB", "CoerceAndRelayToAdminService",
                            "AbuseTGTDelegation", "CrossForestTrust"]
 
         filtered_rels = [rel for rel in interesting_rels if rel.upper() not in self.excluded_relationships]

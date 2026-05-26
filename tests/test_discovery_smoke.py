@@ -8,7 +8,7 @@ class TestCheckDiscoverySmoke(unittest.TestCase):
 
         registered = {check_class.__name__ for check_class in CheckRegistry.get_all_checks()}
 
-        self.assertEqual(len(registered), 50)
+        self.assertEqual(len(registered), 51)
         self.assertIn("MSSQLLoginsCheck", registered)
         self.assertIn("MSSQLNTLMRelayCheck", registered)
         self.assertIn("SCCMTakeover1Check", registered)

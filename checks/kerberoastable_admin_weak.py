@@ -7,13 +7,8 @@ class KerberoastableAdminWeakCheck(Check):
     
     def execute(self):
         def check_kerberoastable_admin_weak(user):
-            is_kerberoastable = user.get('kerberoastable', False)
-            is_user_admin = self.is_admin(user)
-            has_weak_password = self.has_weak_password(user)
-            
-            if is_kerberoastable and is_user_admin and has_weak_password:
-                return ""
+            if user.get('kerberoastable', False) and self.is_admin(user) and self.has_weak_password(user):
+                return self.finding()
             return None
-        
-        users = self.get_users()
-        return self.process_entity_results(users, check_kerberoastable_admin_weak)
+
+        return self.process_entity_results(self.get_users(), check_kerberoastable_admin_weak)

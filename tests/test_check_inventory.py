@@ -37,6 +37,7 @@ EXTRA_FIXTURES = {
     "mssql_ntlm_relay_no_target",
     "sccm_takeover6_colocated",
     "builtin_group_escalation_sccm_site",
+    "esc3_victim_no_agent",
 }
 
 

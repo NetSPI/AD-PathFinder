@@ -1,0 +1,506 @@
+Risk Profile Statistics:
+
+Critical: Total Users - 58, Total Computers - 10, Default Groups - 4, Total - 72
+  Non-admin Users with Escalation Paths: 37
+  SCCM Privilege Escalation: 8
+  Admin with Weak Password: 5
+  Computer has Weak Password: 5
+  Default Groups with Privilege Escalation Paths: 4
+  ESC1 — Enrollee Supplies Subject: 2
+  AS-REP Roastable with Admin privileges and Weak Password: 1
+  ESC4 — Template ACL Abuse: 1
+  ESC6 — CA Allows User-Specified SAN: 1
+  ESC7 — CA ManageCA Permissions: 1
+  Kerberoastable with Admin privileges and Weak Password: 1
+  SCCM Hierarchy Takeover via AdminService Relay (TAKEOVER-5): 1
+  SCCM Hierarchy Takeover via HTTP-to-LDAP/LDAPS Relay on Domain Controller (TAKEOVER-8): 1
+  SCCM Hierarchy Takeover via NTLM Relay (TAKEOVER-1): 1
+  SCCM Hierarchy Takeover via SMB Relay to SMS Provider (TAKEOVER-6): 1
+  SCCM Hierarchy Takeover via SMB Relay to Site Database (TAKEOVER-2): 1
+  User with Weak Password and Unconstrained Delegation: 1
+
+High: Total Users - 17, Total Computers - 124, Default Groups - 0, Total - 141
+  Computers with Escalation Paths: 115
+  MSSQL Privilege Escalation: 7
+  Non-admin AS-REP Roastable with Weak Password: 4
+  Computers with SMB Signing Disabled and Escalation Paths: 2
+  Computers with WebClient and Escalation Paths: 2
+  ESC2 — Any Purpose EKU: 2
+  MSSQL Server Vulnerable to NTLM Relay: 2
+  Computer with Unconstrained Delegation: 1
+  ESC3 — Enrollment Agent: 1
+  ESC8-vulnerable Enterprise CAs: 1
+  ESC9 — No Security Extension: 1
+  Non-admin Kerberoastable with Weak Password: 1
+  SCCM Infrastructure SMB Relay (ELEVATE-1): 1
+  User with Unconstrained Delegation: 1
+
+Medium: Total Users - 60, Total Computers - 7, Default Groups - 0, Total - 67
+  Non-admin with Weak Password: 31
+  Account with Shared Password: 21
+  MSSQL Login: 7
+  Computers with SMB Signing Disabled: 3
+  Computer with Constrained Delegation: 1
+  KRBTGT Password Older Than 6 Months: 1
+  MSSQL Linked Servers: 1
+  MSSQL Login Impersonation: 1
+  SCCM Management Point - Client Policy Retrieval Review: 1
+
+Low: Total Users - 1, Total Computers - 0, Default Groups - 0, Total - 1
+  Tier-0 Session on Non-Tier-0 Host: 1
+
+Info: Total Users - 0, Total Computers - 0, Default Groups - 0, Total - 0
+
+Critical Risk Profiles:
+
+  Default Groups with Privilege Escalation Paths: 4
+
+    ▶ Domain Users
+      ├─ GenericAll on ESC4 (CertTemplate)
+      ├─ GenericAll on JENKINS.TRAINING.LOCAL (Computer)
+      │   └─ LEADS TO -> SCCMDB.TRAINING.LOCAL (Computer) (via 4 steps)
+      │      └─ JENKINS.TRAINING.LOCAL (Computer) -> MemberOf -> DOMAIN COMPUTERS@TRAINING.LOCAL (Group) -> MemberOf -> AUTHENTICATED USERS@TRAINING.LOCAL (Group) -> MemberOf -> EVERYONE@TRAINING.LOCAL (Group) -> WriteAccountRestrictions -> SCCMDB.TRAINING.LOCAL (Computer)
+      └─ GenericAll on TRAINING-DC01-CA (AIACA) (EnterpriseCA)
+
+    ▶ Domain Computers
+      └─ WriteOwner on WINDOWS10.TRAINING.LOCAL (Computer)
+          └─ LEADS TO -> SCCMDB.TRAINING.LOCAL (Computer) (via 4 steps)
+             └─ WINDOWS10.TRAINING.LOCAL (Computer) -> MemberOf -> DOMAIN COMPUTERS@TRAINING.LOCAL (Group) -> MemberOf -> AUTHENTICATED USERS@TRAINING.LOCAL (Group) -> MemberOf -> EVERYONE@TRAINING.LOCAL (Group) -> WriteAccountRestrictions -> SCCMDB.TRAINING.LOCAL (Computer)
+
+    ▶ Authenticated Users
+      ├─ WriteOwner on DEFAULT DOMAIN POLICY (GPO)
+      ├─ GenericAll on BADSUCC (OU)
+      ├─ GenericAll on ANALYSISUSERS (OU)
+      ├─ GenericAll on BADSUCSS (OU)
+      ├─ GenericWrite on DEFAULT DOMAIN POLICY (GPO)
+      ├─ WriteDacl on DEFAULT DOMAIN POLICY (GPO)
+      ├─ GenericWrite on SQLSERVER10.TRAINING.LOCAL (Computer)
+      │   └─ LEADS TO -> DC01.TRAINING.LOCAL (Computer) (via 1 steps)
+      │      └─ SQLSERVER10.TRAINING.LOCAL (Computer) -> WriteDacl -> DC01.TRAINING.LOCAL (Computer)
+      ├─ GenericAll on ESC4_DISABLED (CertTemplate)
+      └─ GenericAll on ESC4 (CertTemplate)
+
+    ▶ Everyone
+      ├─ CanRDP on DC01.TRAINING.LOCAL (Computer)
+      │   └─ LEADS TO -> ENTERPRISE DOMAIN CONTROLLERS@TRAINING.LOCAL (Group) (via 1 steps)
+      │      └─ DC01.TRAINING.LOCAL (Computer) -> MemberOf -> ENTERPRISE DOMAIN CONTROLLERS@TRAINING.LOCAL (Group)
+      └─ WriteAccountRestrictions on SCCMDB.TRAINING.LOCAL (Computer)
+          └─ LEADS TO -> DC01.TRAINING.LOCAL (Computer) (via 4 steps)
+             └─ SCCMDB.TRAINING.LOCAL (Computer) -> MemberOf -> DOMAIN COMPUTERS@TRAINING.LOCAL (Group) -> MemberOf -> AUTHENTICATED USERS@TRAINING.LOCAL (Group) -> MemberOf -> EVERYONE@TRAINING.LOCAL (Group) -> CanRDP -> DC01.TRAINING.LOCAL (Computer)
+
+  Non-admin Users with Escalation Paths: 37
+    Users with Shared Path (32): ADCS, AERIELL.SANDY, ANDREI.ISAHELLA, ANICA.PAULINA, ANNADIANE.FAE, ANNETTE.LEON, BOARDROOM, BUFFY.RUTHANNE, CAL.EM, CHRISTA.JACQUENETTA, CHRISTAL.EUGENIA, CISCO, COMPUTER01, DCSYNC, DEBBIE.KISSIE, DEMETRA.MYRTIA, DOMAINNAMEASUSER, ELSE.NATALA, J.REPORTER, JANNELLE.LAIRD, JOE.SMITH, JOJO.KATRINA, LEIGH.PENNIE, LOTTI.RENAE, MARNIA.CHRISSIE, PERLE.SELIE, ROBINA.KIPPAR, SABINE.MYRTIE, TEST, TEST.USERS, UNCONSTRAINED, VICTORIA.REP
+        ▶ Common Escalation Path: MemberOf -> DOMAIN USERS (Group) -> MemberOf -> AUTHENTICATED USERS (Group) -> CoerceAndRelayToSMB -> SCCMDB (Computer)
+
+    Users with Shared Path (2): CHERILYNN.ROSELIA, MAURINE.CAMMIE
+        ▶ Common Escalation Path: MemberOf -> FA-MIGORDOBE-DISTLIST1 (Group) -> GenericAll -> IVORY_MCCULLOUGH (User)
+
+    Users with Shared Path (1): JOE.PATHFINDER
+        ▶ Common Escalation Path: GenericAll -> DC01 (Computer)
+
+    Users with Shared Path (1): SQLSVC
+        ▶ Common Escalation Path: GenericAll -> SCCMDB (Computer)
+
+    Users with Shared Path (1): WELCOMEUSER1
+        ▶ Common Escalation Path: GenericWrite -> DC01 (Computer)
+
+  AS-REP Roastable with Admin privileges and Weak Password: 1
+    ▶ JB
+
+  Admin with Weak Password: 5
+    ▶ ADMINISTRATOR
+    ▶ DA
+    ▶ JB
+    ▶ KORNEY.DARELLE
+    ▶ TESTDA
+
+  Computer has Weak Password: 5
+    ▶ COMPUTER01.TRAINING.LOCAL
+    ▶ LAB-SQL01.TRAINING.LOCAL
+    ▶ SCCM.TRAINING.LOCAL
+    ▶ SQLSERVER10.TRAINING.LOCAL
+    ▶ WINDOWS10.TRAINING.LOCAL
+
+  ESC1 — Enrollee Supplies Subject: 2
+    ▶ ESC1 (TRAINING-DC01-CA ON DC01.TRAINING.LOCAL)
+        ▶ AUTHENTICATED USERS, DOMAIN USERS
+
+    ▶ ESC2 (TRAINING-DC01-CA ON DC01.TRAINING.LOCAL)
+        ▶ AUTHENTICATED USERS, DOMAIN USERS
+
+  ESC4 — Template ACL Abuse: 1
+    ▶ ESC4 (TRAINING-DC01-CA ON DC01.TRAINING.LOCAL)
+        ▶ AUTHENTICATED USERS, DOMAIN USERS
+
+  ESC6 — CA Allows User-Specified SAN: 1
+    ▶ ESC9 (TRAINING-DC01-CA ON DC01.TRAINING.LOCAL)
+        ▶ DOMAIN USERS
+
+  ESC7 — CA ManageCA Permissions: 1
+    ▶ TRAINING-DC01-CA (DC01.TRAINING.LOCAL)
+        ▶ DOMAIN USERS
+
+  Kerberoastable with Admin privileges and Weak Password: 1
+    ▶ DA
+
+  SCCM Hierarchy Takeover via AdminService Relay (TAKEOVER-5): 1
+    ▶ SCCMDB.TRAINING.LOCAL
+        ▶ Coerce LAB-SQL01.TRAINING.LOCAL -> AdminService relay to https://SCCMDB.TRAINING.LOCAL/AdminService (Site TRN)
+
+  SCCM Hierarchy Takeover via HTTP-to-LDAP/LDAPS Relay on Domain Controller (TAKEOVER-8): 1
+    ▶ DC01.TRAINING.LOCAL
+        ▶ Coerce sccmdb.training.local (SMS Provider), lab-sql01.training.local (Site Server) -> HTTP-to-LDAP/LDAPS NTLM relay to dc01.training.local
+
+  SCCM Hierarchy Takeover via NTLM Relay (TAKEOVER-1): 1
+    ▶ SCCMDB.TRAINING.LOCAL
+        ▶ Coerce lab-sql01.training.local -> MSSQL relay to sccmdb.training.local (Site TRN) [EPA: Off]
+
+  SCCM Hierarchy Takeover via SMB Relay to SMS Provider (TAKEOVER-6): 1
+    ▶ SCCMDB.TRAINING.LOCAL
+        ▶ Coerce lab-sql01.training.local -> SMB relay to sccmdb.training.local (Site TRN)
+
+  SCCM Hierarchy Takeover via SMB Relay to Site Database (TAKEOVER-2): 1
+    ▶ SCCMDB.TRAINING.LOCAL
+        ▶ Coerce lab-sql01.training.local -> SMB relay to sccmdb.training.local (Site TRN)
+
+  SCCM Privilege Escalation: 8
+    ▶ DOMAIN USERS@TRAINING.LOCAL
+        DOMAIN USERS > MSSQL_HasLogin > Domain Users > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_Contains > sysadmin > MSSQL_Database(CM_TRN) > SCCM_Site(TRN)
+        DOMAIN USERS > MSSQL_HasLogin > Domain Users > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_Contains > MSSQL_Database(CM_TRN) > MSSQL_Contains > db_owner@CM_TRN > SCCM_Site(TRN)
+        DOMAIN USERS > MSSQL_HasLogin > Domain Users > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_ExecuteOnHost (as DA@TRAINING.LOCAL) > SCCMDB.TRAINING.LOCAL > SCCM_AssignAllPermissions > SCCM_Site(TRN)
+
+    ▶ SQLSVC
+        sqlsvc > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_Contains > sysadmin > MSSQL_Database(CM_TRN) > SCCM_Site(TRN)
+        sqlsvc > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_Contains > MSSQL_Database(CM_TRN) > MSSQL_Contains > db_owner@CM_TRN > SCCM_Site(TRN)
+        SQLSVC > MSSQL_HasLogin > sqlsvc > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_ExecuteOnHost (as DA@TRAINING.LOCAL) > SCCMDB.TRAINING.LOCAL > SCCM_AssignAllPermissions > SCCM_Site(TRN)
+
+    ▶ JOE.PATHFINDER
+        joe.pathfinder > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_Contains > sysadmin > MSSQL_Database(CM_TRN) > SCCM_Site(TRN)
+        joe.pathfinder > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_Contains > MSSQL_Database(CM_TRN) > MSSQL_Contains > db_owner@CM_TRN > SCCM_Site(TRN)
+        JOE.PATHFINDER > MSSQL_HasLogin > joe.pathfinder > MSSQL_ExecuteAs > sqlsvc > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_ExecuteOnHost (as DA@TRAINING.LOCAL) > SCCMDB.TRAINING.LOCAL > SCCM_AssignAllPermissions > SCCM_Site(TRN)
+
+    ▶ WELCOMEUSER1
+        welcomeuser1 > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_Contains > sysadmin > MSSQL_Database(CM_TRN) > SCCM_Site(TRN)
+        welcomeuser1 > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_Contains > MSSQL_Database(CM_TRN) > MSSQL_Contains > db_owner@CM_TRN > SCCM_Site(TRN)
+        WELCOMEUSER1 > MSSQL_HasLogin > welcomeuser1 > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_ExecuteOnHost (as DA@TRAINING.LOCAL) > SCCMDB.TRAINING.LOCAL > SCCM_AssignAllPermissions > SCCM_Site(TRN)
+
+    ▶ UNCONSTRAINED
+        unconstrained > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_Contains > sysadmin > MSSQL_Database(CM_TRN) > SCCM_Site(TRN)
+        unconstrained > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_Contains > MSSQL_Database(CM_TRN) > MSSQL_Contains > db_owner@CM_TRN > SCCM_Site(TRN)
+        UNCONSTRAINED > MSSQL_HasLogin > unconstrained > MSSQL_ExecuteAs > dcsync > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_ExecuteOnHost (as DA@TRAINING.LOCAL) > SCCMDB.TRAINING.LOCAL > SCCM_AssignAllPermissions > SCCM_Site(TRN)
+
+    ▶ DCSYNC
+        dcsync > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_Contains > sysadmin > MSSQL_Database(CM_TRN) > SCCM_Site(TRN)
+        dcsync > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_Contains > MSSQL_Database(CM_TRN) > MSSQL_Contains > db_owner@CM_TRN > SCCM_Site(TRN)
+        DCSYNC > MSSQL_HasLogin > dcsync > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_ExecuteOnHost (as DA@TRAINING.LOCAL) > SCCMDB.TRAINING.LOCAL > SCCM_AssignAllPermissions > SCCM_Site(TRN)
+
+    ▶ J.REPORTER
+        j.reporter > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_Contains > sysadmin > MSSQL_Database(CM_TRN) > SCCM_Site(TRN)
+        j.reporter > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_Contains > MSSQL_Database(CM_TRN) > MSSQL_Contains > db_owner@CM_TRN > SCCM_Site(TRN)
+        J.REPORTER > MSSQL_HasLogin > j.reporter > MSSQL_ExecuteAs > ReportSvc > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_ExecuteOnHost (as DA@TRAINING.LOCAL) > SCCMDB.TRAINING.LOCAL > SCCM_AssignAllPermissions > SCCM_Site(TRN)
+
+    ▶ AUTHENTICATED USERS@TRAINING.LOCAL
+        AUTHENTICATED USERS > CoerceAndRelayToMSSQL -> > MSSQL_Database(CM_TRN) > SCCM_Site(TRN)
+        AUTHENTICATED USERS > MSSQL_CoerceAndRelayToMSSQL > LAB-SQL01$ > MSSQL_Database(CM_TRN) > SCCM_Site(TRN)
+
+  User with Weak Password and Unconstrained Delegation: 1
+    ▶ UNCONSTRAINED
+
+High Risk Profiles:
+
+  Computers with Escalation Paths: 115
+    Computers with Shared Path (90): ADTEST_SOURCEC.TRAINING.LOCAL, ADTEST_TARGETC.TRAINING.LOCAL, ATTACKER-MACHINE.TRAINING.LOCAL, AWSWDBAS1000000.TRAINING.LOCAL, AWSWSECS1000001.TRAINING.LOCAL, AWSWSECS1000002.TRAINING.LOCAL, AWSWVIR1000000.TRAINING.LOCAL, AWSWVIR1000001.TRAINING.LOCAL, AWSWWKS1000000.TRAINING.LOCAL, AZRWDBAS1000000.TRAINING.LOCAL, AZRWLPT1000000.TRAINING.LOCAL, AZRWVIR1000000.TRAINING.LOCAL, AZRWWKS1000000.TRAINING.LOCAL, BDEWCTRX1000000.TRAINING.LOCAL, BDEWLPT1000000.TRAINING.LOCAL, BDEWSECS1000001.TRAINING.LOCAL, BDEWVIR1000000.TRAINING.LOCAL, BDEWVIR1000002.TRAINING.LOCAL, COMPUTER01.TRAINING.LOCAL, ESMWLPT1000000.TRAINING.LOCAL, ESMWLPT1000001.TRAINING.LOCAL, ESMWLPT1000002.TRAINING.LOCAL, ESMWVIR1000000.TRAINING.LOCAL, ESMWVIR1000001.TRAINING.LOCAL, ESMWWEBS1000000.TRAINING.LOCAL, ESMWWKS1000000.TRAINING.LOCAL, ESMWWKS1000001.TRAINING.LOCAL, FINWAPPS1000000.TRAINING.LOCAL, FINWAPPS1000001.TRAINING.LOCAL, FINWAPPS1000002.TRAINING.LOCAL, FINWCTRX1000000.TRAINING.LOCAL, FINWDBAS1000000.TRAINING.LOCAL, FINWLPT1000000.TRAINING.LOCAL, FINWLPT1000001.TRAINING.LOCAL, FINWLPT1000002.TRAINING.LOCAL, FINWVIR1000000.TRAINING.LOCAL, FINWVIR1000001.TRAINING.LOCAL, FINWWKS1000000.TRAINING.LOCAL, FINWWKS1000001.TRAINING.LOCAL, FSRWLPT1000000.TRAINING.LOCAL, FSRWSECS1000000.TRAINING.LOCAL, FSRWVIR1000000.TRAINING.LOCAL, FSRWVIR1000001.TRAINING.LOCAL, GOOWAPPS1000001.TRAINING.LOCAL, GOOWCTRX1000000.TRAINING.LOCAL, GOOWCTRX1000001.TRAINING.LOCAL, GOOWSECS1000000.TRAINING.LOCAL, GOOWWKS1000000.TRAINING.LOCAL, GOOWWKS1000001.TRAINING.LOCAL, HREWAPPS1000000.TRAINING.LOCAL, HREWLPT1000000.TRAINING.LOCAL, HREWLPT1000001.TRAINING.LOCAL, HREWLPT1000002.TRAINING.LOCAL, HREWSECS1000000.TRAINING.LOCAL, ITSWAPPS1000000.TRAINING.LOCAL, ITSWLPT1000000.TRAINING.LOCAL, ITSWLPT1000001.TRAINING.LOCAL, ITSWSECS1000000.TRAINING.LOCAL, ITSWVIR1000000.TRAINING.LOCAL, ITSWVIR1000001.TRAINING.LOCAL, ITSWWEBS1000000.TRAINING.LOCAL, JENKINS.TRAINING.LOCAL, LAB-SQL01.TRAINING.LOCAL, NETSPI-TEST.TRAINING.LOCAL, OGCWAPPS1000000.TRAINING.LOCAL, OGCWAPPS1000001.TRAINING.LOCAL, OGCWDBAS1000000.TRAINING.LOCAL, OGCWLPT1000001.TRAINING.LOCAL, OGCWSECS1000000.TRAINING.LOCAL, OGCWVIR1000000.TRAINING.LOCAL, PRE2K.TRAINING.LOCAL, PRE2K1.TRAINING.LOCAL, SCCM.TRAINING.LOCAL, SECWAPPS1000001.TRAINING.LOCAL, SECWAPPS1000002.TRAINING.LOCAL, SECWLPT1000000.TRAINING.LOCAL, SECWWEBS1000000.TRAINING.LOCAL, SECWWEBS1000002.TRAINING.LOCAL, SECWWKS1000001.TRAINING.LOCAL, SECWWKS1000002.TRAINING.LOCAL, TSTWAPPS1000000.TRAINING.LOCAL, TSTWAPPS1000002.TRAINING.LOCAL, TSTWDBAS1000000.TRAINING.LOCAL, TSTWDBAS1000001.TRAINING.LOCAL, TSTWLPT1000001.TRAINING.LOCAL, TSTWVIR1000000.TRAINING.LOCAL, TSTWVIR1000001.TRAINING.LOCAL, TSTWWEBS1000000.TRAINING.LOCAL, TSTWWKS1000000.TRAINING.LOCAL, WINDOWS10.TRAINING.LOCAL
+        ▶ Common Escalation Path: MemberOf -> DOMAIN COMPUTERS (Group) -> MemberOf -> AUTHENTICATED USERS (Group) -> CoerceAndRelayToSMB -> SCCMDB (Computer)
+
+    Computers with Shared Path (3): AWSWWKS1000001.TRAINING.LOCAL, BDEWWKS1000000.TRAINING.LOCAL, GOOWAPPS1000000.TRAINING.LOCAL
+        ▶ Common Escalation Path: GenericAll -> LAMBERT.LOTTE (User)
+
+    Computers with Shared Path (2): ACPLBGLD.TRAINING.LOCAL, IZFVTJER.TRAINING.LOCAL
+        ▶ Common Escalation Path: AllowedToAct -> SCCMDB (Computer)
+
+    Computers with Shared Path (2): AWSWSECS1000000.TRAINING.LOCAL, BDEWWKS1000001.TRAINING.LOCAL
+        ▶ Common Escalation Path: GenericAll -> ADRIENNE_BRITT (User) -> GenericAll -> SCCMDB (Computer)
+
+    Computers with Shared Path (1): AZRWSECS1000000.TRAINING.LOCAL
+        ▶ Common Escalation Path: GenericAll -> LAWANDA_FRANKS (User)
+
+    Computers with Shared Path (1): BDEWSECS1000000.TRAINING.LOCAL
+        ▶ Common Escalation Path: MemberOf -> LA-MAURICIO2-DISTLIST1 (Group) -> GenericAll -> MI-838-ADMINGROUP1 (Group) -> GenericAll -> SCCMDB (Computer)
+
+    Computers with Shared Path (1): BDEWVIR1000001.TRAINING.LOCAL
+        ▶ Common Escalation Path: GenericAll -> RICH_CANNON (User) -> GenericAll -> VERNA_BRANCH (User)
+
+    Computers with Shared Path (1): HREWWEBS1000000.TRAINING.LOCAL
+        ▶ Common Escalation Path: GenericAll -> CAROLE_ALFORD (User)
+
+    Computers with Shared Path (1): HREWWEBS1000001.TRAINING.LOCAL
+        ▶ Common Escalation Path: GenericAll -> SCCMDB (Computer)
+
+    Computers with Shared Path (1): HREWWKS1000000.TRAINING.LOCAL
+        ▶ Common Escalation Path: MemberOf -> NE-DAN-DISTLIST1 (Group) -> GenericAll -> LOTTIE_BLANCHARD (User)
+
+    Computers with Shared Path (1): ITSWLPT1000002.TRAINING.LOCAL
+        ▶ Common Escalation Path: GenericAll -> FREIDA_GROSS (User)
+
+    Computers with Shared Path (1): KIOSK01.TRAINING.LOCAL
+        ▶ Common Escalation Path: GenericAll -> BRADFORD_BUCKNER (User)
+
+    Computers with Shared Path (1): OGCWLPT1000000.TRAINING.LOCAL
+        ▶ Common Escalation Path: GenericAll -> PASQUALE_SIMS (User) -> MemberOf -> SE-JAG-DISTLIST1 (Group) -> GenericAll -> SCCMDB (Computer)
+
+    Computers with Shared Path (1): OGCWWKS1000000.TRAINING.LOCAL
+        ▶ Common Escalation Path: MemberOf -> LY-BETITASBO-ADMINGROUP1 (Group) -> GenericAll -> SHELBY_ROBBINS (User)
+
+    Computers with Shared Path (1): SECRET$@TRAINING.LOCAL
+        ▶ Common Escalation Path: MemberOf -> DOMAIN USERS (Group) -> MemberOf -> AUTHENTICATED USERS (Group) -> CoerceAndRelayToSMB -> SCCMDB (Computer)
+
+    Computers with Shared Path (1): SECWAPPS1000000.TRAINING.LOCAL
+        ▶ Common Escalation Path: GenericAll -> CL-PIRATAS12-DISTLIST1 (Group) -> GenericAll -> LAMBERT.LOTTE (User)
+
+    Computers with Shared Path (1): SECWLPT1000001.TRAINING.LOCAL
+        ▶ Common Escalation Path: GenericAll -> TERENCE_NASH (User) -> MemberOf -> 94-SUK-DISTLIST1 (Group) -> GenericAll -> SCCMDB (Computer)
+
+    Computers with Shared Path (1): SECWWEBS1000001.TRAINING.LOCAL
+        ▶ Common Escalation Path: GenericAll -> LOTTIE_BLANCHARD (User)
+
+    Computers with Shared Path (1): SECWWKS1000000.TRAINING.LOCAL
+        ▶ Common Escalation Path: GenericAll -> AWSWWKS1000001 (Computer) -> GenericAll -> LAMBERT.LOTTE (User)
+
+    Computers with Shared Path (1): SQLSERVER10.TRAINING.LOCAL
+        ▶ Common Escalation Path: WriteDacl -> DC01 (Computer)
+
+    Computers with Shared Path (1): TSTWAPPS1000001.TRAINING.LOCAL
+        ▶ Common Escalation Path: GenericAll -> JANELL_ALFORD (User)
+
+    Computers with Shared Path (1): TSTWLPT1000000.TRAINING.LOCAL
+        ▶ Common Escalation Path: GenericAll -> MOSES_KRAMER (User)
+
+  Computers with SMB Signing Disabled and Escalation Paths: 2
+    ▶ LAB-SQL01.TRAINING.LOCAL (WINDOWS SERVER 2019 STANDARD)
+         └─ LEADS TO -> SCCMDB.TRAINING.LOCAL (Computer) (via 3 steps)
+            └─ LAB-SQL01.TRAINING.LOCAL (Computer) -> MemberOf -> DOMAIN COMPUTERS@TRAINING.LOCAL (Group) -> MemberOf -> AUTHENTICATED USERS@TRAINING.LOCAL (Group) -> CoerceAndRelayToSMB -> SCCMDB.TRAINING.LOCAL (Computer)
+
+    ▶ WINDOWS10.TRAINING.LOCAL (WINDOWS 10 ENTERPRISE LTSC)
+         └─ LEADS TO -> SCCMDB.TRAINING.LOCAL (Computer) (via 3 steps)
+            └─ WINDOWS10.TRAINING.LOCAL (Computer) -> MemberOf -> DOMAIN COMPUTERS@TRAINING.LOCAL (Group) -> MemberOf -> AUTHENTICATED USERS@TRAINING.LOCAL (Group) -> CoerceAndRelayToSMB -> SCCMDB.TRAINING.LOCAL (Computer)
+
+  Computers with WebClient and Escalation Paths: 2
+    ▶ LAB-SQL01.TRAINING.LOCAL (WINDOWS SERVER 2019 STANDARD)
+         └─ LEADS TO -> SCCMDB.TRAINING.LOCAL (Computer) (via 3 steps)
+            └─ LAB-SQL01.TRAINING.LOCAL (Computer) -> MemberOf -> DOMAIN COMPUTERS@TRAINING.LOCAL (Group) -> MemberOf -> AUTHENTICATED USERS@TRAINING.LOCAL (Group) -> CoerceAndRelayToSMB -> SCCMDB.TRAINING.LOCAL (Computer)
+
+    ▶ WINDOWS10.TRAINING.LOCAL (WINDOWS 10 ENTERPRISE LTSC)
+         └─ LEADS TO -> SCCMDB.TRAINING.LOCAL (Computer) (via 3 steps)
+            └─ WINDOWS10.TRAINING.LOCAL (Computer) -> MemberOf -> DOMAIN COMPUTERS@TRAINING.LOCAL (Group) -> MemberOf -> AUTHENTICATED USERS@TRAINING.LOCAL (Group) -> CoerceAndRelayToSMB -> SCCMDB.TRAINING.LOCAL (Computer)
+
+  Computer with Unconstrained Delegation: 1
+    ▶ SCCM.TRAINING.LOCAL
+
+  ESC2 — Any Purpose EKU: 2
+    ▶ ESC2 (TRAINING-DC01-CA ON DC01.TRAINING.LOCAL)
+        ▶ AUTHENTICATED USERS, DOMAIN USERS
+
+    ▶ ESC3 (TRAINING-DC01-CA ON DC01.TRAINING.LOCAL)
+        ▶ AUTHENTICATED USERS, DOMAIN USERS
+
+  ESC3 — Enrollment Agent: 1
+    ▶ ESC3 (TRAINING-DC01-CA ON DC01.TRAINING.LOCAL)
+        ▶ AUTHENTICATED USERS, DOMAIN USERS
+
+  ESC8-vulnerable Enterprise CAs: 1
+    ▶ DC01.TRAINING.LOCAL (training-DC01-CA)
+
+  ESC9 — No Security Extension: 1
+    ▶ ESC9 (TRAINING-DC01-CA ON DC01.TRAINING.LOCAL)
+        ▶ DOMAIN USERS
+
+  MSSQL Privilege Escalation: 7
+    ▶ J.REPORTER
+        j.reporter > MSSQL_ExecuteAs > ReportSvc > MSSQL_ExecuteAs > ETLService > MSSQL_ExecuteAs > sa > MSSQL_MemberOf > sysadmin@lab-sql01.training.local
+        j.reporter > MSSQL_ExecuteAs > ReportSvc > MSSQL_MemberOf > DataAdmin > MSSQL_ChangePassword > DevDeploy@lab-sql01.training.local (ALTER ANY LOGIN)
+        j.reporter > MSSQL_ExecuteAs > ReportSvc > MSSQL_MemberOf > DataAdmin > MSSQL_ChangePassword > WebAppPool@lab-sql01.training.local (ALTER ANY SERVER ROLE)
+        j.reporter > MSSQL_ExecuteAs > ReportSvc > MSSQL_MemberOf > DataAdmin > MSSQL_ChangePassword > DevDeploy > MSSQL_IsMappedTo > TestUser2@VulnerableApp (VulnerableApp)
+        j.reporter > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_Contains > sysadmin@sccmdb.training.local
+
+    ▶ JOE.PATHFINDER
+        joe.pathfinder > MSSQL_ExecuteAs > sqlsvc@lab-sql01.training.local (ALTER ANY SERVER ROLE)
+        joe.pathfinder > MSSQL_ExecuteAs > sqlsvc > MSSQL_AddMember > DataAdmin > MSSQL_ChangePassword > DevDeploy@lab-sql01.training.local (ALTER ANY LOGIN)
+        joe.pathfinder > MSSQL_ExecuteAs > sqlsvc > MSSQL_AddMember > DataAdmin > MSSQL_ChangePassword > WebAppPool@lab-sql01.training.local (ALTER ANY SERVER ROLE)
+        joe.pathfinder > MSSQL_ExecuteAs > sqlsvc > MSSQL_AddMember > DataAdmin > MSSQL_ChangePassword > DevDeploy > MSSQL_IsMappedTo > TestUser2@VulnerableApp (VulnerableApp)
+        joe.pathfinder > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_Contains > sysadmin@sccmdb.training.local
+
+    ▶ SQLSVC
+        sqlsvc > MSSQL_AddMember > DataAdmin > MSSQL_ChangePassword > DevDeploy@lab-sql01.training.local (ALTER ANY LOGIN)
+        sqlsvc > MSSQL_AddMember > DataAdmin > MSSQL_ChangePassword > WebAppPool@lab-sql01.training.local (ALTER ANY SERVER ROLE)
+        sqlsvc > MSSQL_AddMember > DataAdmin > MSSQL_ChangePassword > DevDeploy > MSSQL_IsMappedTo > TestUser2@VulnerableApp (VulnerableApp)
+        sqlsvc > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_Contains > sysadmin@sccmdb.training.local
+
+    ▶ DOMAIN USERS@TRAINING.LOCAL
+        DOMAIN USERS > MSSQL_HasLogin > Domain Users > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_Contains > sysadmin@sccmdb.training.local
+
+    ▶ WELCOMEUSER1
+        welcomeuser1 > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_Contains > sysadmin@sccmdb.training.local
+
+    ▶ UNCONSTRAINED
+        unconstrained > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_Contains > sysadmin@sccmdb.training.local
+
+    ▶ DCSYNC
+        dcsync > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin > sccmdb.training.local > MSSQL_Contains > sysadmin@sccmdb.training.local
+
+  MSSQL Server Vulnerable to NTLM Relay: 2
+    ▶ SCCMDB.TRAINING.LOCAL
+        ▶ sccmdb\ConfigMgr_DViewAccess > MSSQL_Connect > SCCMDB.TRAINING.LOCAL > xp_dirtree > DA@TRAINING.LOCAL > NTLM_Relay > WINDOWS10.TRAINING.LOCAL (WINDOWS 10 ENTERPRISE LTSC), LAB-SQL01.TRAINING.LOCAL (WINDOWS SERVER 2019 STANDARD)
+        ▶ TRAINING\LAB-SQL01$ > MSSQL_Connect > SCCMDB.TRAINING.LOCAL > xp_dirtree > DA@TRAINING.LOCAL > NTLM_Relay > WINDOWS10.TRAINING.LOCAL (WINDOWS 10 ENTERPRISE LTSC), LAB-SQL01.TRAINING.LOCAL (WINDOWS SERVER 2019 STANDARD)
+
+    ▶ LAB-SQL01.TRAINING.LOCAL
+        ▶ TRAINING\Domain Users > MSSQL_Connect > LAB-SQL01.TRAINING.LOCAL > xp_dirtree > DA@TRAINING.LOCAL > NTLM_Relay > SCCMDB.TRAINING.LOCAL (WINDOWS SERVER 2022 STANDARD), WINDOWS10.TRAINING.LOCAL (WINDOWS 10 ENTERPRISE LTSC)
+        ▶ LAB-SQL01\WSUS Administrators > MSSQL_Connect > LAB-SQL01.TRAINING.LOCAL > xp_dirtree > DA@TRAINING.LOCAL > NTLM_Relay > SCCMDB.TRAINING.LOCAL (WINDOWS SERVER 2022 STANDARD), WINDOWS10.TRAINING.LOCAL (WINDOWS 10 ENTERPRISE LTSC)
+        ▶ DOMAIN USERS@TRAINING.LOCAL > MSSQL_Connect > LAB-SQL01.TRAINING.LOCAL > xp_dirtree > DA@TRAINING.LOCAL > NTLM_Relay > SCCMDB.TRAINING.LOCAL (WINDOWS SERVER 2022 STANDARD), WINDOWS10.TRAINING.LOCAL (WINDOWS 10 ENTERPRISE LTSC)
+
+  Non-admin AS-REP Roastable with Weak Password: 4
+    ▶ CHRISTAL.EUGENIA
+    ▶ LEIGH.PENNIE
+    ▶ MARNIA.CHRISSIE
+    ▶ VICTORIA.REP
+
+  Non-admin Kerberoastable with Weak Password: 1
+    ▶ SQLSVC
+
+  SCCM Infrastructure SMB Relay (ELEVATE-1): 1
+    ▶ SCCMDB.TRAINING.LOCAL
+        ▶ Coerce lab-sql01.training.local -> SMB relay to sccmdb.training.local (SMS SQL Server, SMS Component Server, SMS Provider, SMS Site System) (Site TRN)
+
+  User with Unconstrained Delegation: 1
+    ▶ UNCONSTRAINED
+
+Medium Risk Profiles:
+
+  Account with Shared Password: 21
+    ▶ ADCS
+    ▶ ADMINISTRATOR
+    ▶ ANNETTE.LEON
+    ▶ BUFFY.RUTHANNE
+    ▶ CAL.EM
+    ▶ CHRISTAL.EUGENIA
+    ▶ DA
+    ▶ DOMAINNAMEASUSER
+    ▶ JANNELLE.LAIRD
+    ▶ JB
+    ▶ JOE.PATHFINDER
+    ▶ JOE.SMITH
+    ▶ JOJO.KATRINA
+    ▶ KORNEY.DARELLE
+    ▶ LOTTI.RENAE
+    ▶ MAURINE.CAMMIE
+    ▶ PERLE.SELIE
+    ▶ ROBINA.KIPPAR
+    ▶ SABINE.MYRTIE
+    ▶ TESTDA
+    ▶ UNCONSTRAINED
+
+  Computer with Constrained Delegation: 1
+    ▶ KIOSK01.TRAINING.LOCAL
+        ▶ Constrained Delegation: http/JENKINS.training.local, http/JENKINS, HOST/JENKINS.training.local, HOST/JENKINS, cifs/JENKINS.training.local, cifs/JENKINS
+
+  Computers with SMB Signing Disabled: 3
+    ▶ LAB-SQL01.TRAINING.LOCAL (WINDOWS SERVER 2019 STANDARD)
+    ▶ SCCMDB.TRAINING.LOCAL (WINDOWS SERVER 2022 STANDARD)
+    ▶ WINDOWS10.TRAINING.LOCAL (WINDOWS 10 ENTERPRISE LTSC)
+
+  KRBTGT Password Older Than 6 Months: 1
+    ▶ KRBTGT
+        ▶ Last Changed On: 11/29/2023
+
+  MSSQL Linked Servers: 1
+    ▶ LAB-SQL01.TRAINING.LOCAL
+        ▶ Any SQL user -> Linked Server [BACKEND_SQL] -> Execute as TRAINING\da (sysadmin, securityadmin)
+        ▶ Any SQL user -> Linked Server [SCCMDB] -> Execute as sa (sysadmin, securityadmin, RPC enabled)
+
+  MSSQL Login: 7
+    ▶ SQLSVC
+        └─ SQL Login on lab-sql01.training.local:1433
+           └─ No database access
+
+    ▶ JOE.PATHFINDER
+        └─ SQL Login on lab-sql01.training.local:1433
+           └─ Database: VulnerableApp
+              ├─ Roles: db_owner, public
+              └─ Permissions: CONNECT
+
+    ▶ WELCOMEUSER1
+        └─ SQL Login on lab-sql01.training.local:1433
+           └─ No database access
+
+    ▶ UNCONSTRAINED
+        └─ SQL Login on lab-sql01.training.local:1433
+           └─ No database access
+
+    ▶ DCSYNC
+        └─ SQL Login on lab-sql01.training.local:1433
+           └─ No database access
+
+    ▶ J.REPORTER
+        └─ SQL Login on lab-sql01.training.local:1433
+           └─ Database: Reporting
+              ├─ Roles: db_datareader, public, report_executor
+              └─ Permissions: CONNECT
+
+    ▶ DOMAIN USERS@TRAINING.LOCAL
+        └─ SQL Login on lab-sql01.training.local:1433
+           └─ Database: VulnerableApp
+              ├─ Roles: public
+              └─ Permissions: CONNECT, DELETE, INSERT, SELECT, UPDATE
+
+  MSSQL Login Impersonation: 1
+    ▶ LAB-SQL01.TRAINING.LOCAL
+        ▶ ETLService -> EXECUTE AS sa
+        ▶ ReportSvc -> EXECUTE AS ETLService -> EXECUTE AS sa
+        ▶ ReportSvc -> EXECUTE AS TRAINING\Administrator
+        ▶ TRAINING\j.reporter -> EXECUTE AS ReportSvc -> EXECUTE AS TRAINING\Administrator
+        ▶ TRAINING\joe.pathfinder -> EXECUTE AS TRAINING\sqlsvc
+        ▶ TRAINING\unconstrained -> EXECUTE AS TRAINING\dcsync
+
+  Non-admin with Weak Password: 31
+    ▶ ADCS
+    ▶ AERIELL.SANDY
+    ▶ ANICA.PAULINA
+    ▶ ANNADIANE.FAE
+    ▶ ANNETTE.LEON
+    ▶ BOARDROOM
+    ▶ BUFFY.RUTHANNE
+    ▶ CAL.EM
+    ▶ CHERILYNN.ROSELIA
+    ▶ CHRISTA.JACQUENETTA
+    ▶ CHRISTAL.EUGENIA
+    ▶ CISCO
+    ▶ COMPUTER01
+    ▶ DEBBIE.KISSIE
+    ▶ DEMETRA.MYRTIA
+    ▶ DOMAINNAMEASUSER
+    ▶ JANNELLE.LAIRD
+    ▶ JOE.PATHFINDER
+    ▶ JOE.SMITH
+    ▶ JOJO.KATRINA
+    ▶ LEIGH.PENNIE
+    ▶ LOTTI.RENAE
+    ▶ MARNIA.CHRISSIE
+    ▶ MAURINE.CAMMIE
+    ▶ PERLE.SELIE
+    ▶ ROBINA.KIPPAR
+    ▶ SABINE.MYRTIE
+    ▶ SQLSVC
+    ▶ TEST.USERS
+    ▶ UNCONSTRAINED
+    ▶ VICTORIA.REP
+
+  SCCM Management Point - Client Policy Retrieval Review: 1
+    ▶ LAB-SQL01.TRAINING.LOCAL
+        ▶ lab-sql01.training.local (Site TRN) - review http(s)://lab-sql01.training.local/ccm_system/request
+
+Low Risk Profiles:
+
+  Tier-0 Session on Non-Tier-0 Host: 1
+    ▶ DA
+        ▶ Active session on: LAB-SQL01.TRAINING.LOCAL
+
+Info Risk Profiles:

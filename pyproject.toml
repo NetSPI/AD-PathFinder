@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=63.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adpathfinder"
+version = "1.1.0"
+description = "Maps Active Directory attack paths from SharpHound, OpenGraph, NTDS, and hashcat data into prioritized AD and password audit reports."
+readme = "README.md"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+authors = [
+  {name = "Jonathan O'Reilly"},
+]
+keywords = ["ad", "bloodhound", "ntds"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Information Technology",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Security",
+]
+
+dependencies = [
+  "neo4j>=5.0.0",
+  "colorama>=0.4.4",
+  "requests>=2.25.1",
+  "beautifulsoup4>=4.9.3",
+  "argcomplete>=1.12.3",
+  "prompt_toolkit>=3.0.20"
+]
+requires-python = ">=3.9"
+
+[project.optional-dependencies]
+test = ["pytest>=7.0", "pytest-cov>=4.0", "mypy>=1.0"]
+
+[project.scripts]
+adpathfinder = "modules.main:main"
+
+[tool.pytest.ini_options]
+addopts = "-m 'not integration and not neo4j'"
+markers = [
+    "neo4j: requires a running Neo4j instance (set NEO4J_URI or use the docker one-liner)",
+    "integration: optional end-to-end smoke; not part of the default PR run",
+]
+
+[tool.setuptools]
+packages = [
+    "modules",
+    "modules.collectors",
+    "checks",
+    "checks.core",
+    "checks.core.display",
+    "checks.cross_domain",
+    "datasources",
+    "assets",
+]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"assets" = ["*.css", "*.js"]

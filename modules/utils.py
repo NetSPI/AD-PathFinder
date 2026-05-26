@@ -53,60 +53,6 @@ def parse_potfile_partitioned(potfile_path):
     return cracked_passwords, ntlmv2_by_netbios
 
 
-def load_ntds_hashes(ntds_file):
-    ntds_user_hashes = {}
-    lm_hashes = {} 
-    blank_hash = "31d6cfe0d16ae931b73c59d7e0c089c0"
-    default_lm_hash = "aad3b435b51404eeaad3b435b51404ee"
-    no_lm_hash_indicator = "no lm-hash**********************"
-
-    try:
-        with open(ntds_file, "r", encoding='utf-8', errors='ignore') as file:
-            line_count = 0
-            processed_count = 0
-            skipped_count = 0
-
-            for line in file:
-                line_count += 1
-                line = line.strip()
-                if not line:
-                    continue
-
-                parts = line.split(":")
-                if len(parts) < 4:
-                    skipped_count += 1
-                    continue
-
-                full_username = parts[0].lower()
-                username = full_username.split('\\')[-1]
-                nt_hash = parts[3].lower()
-
-                if "no nt-hash" in nt_hash.lower() or nt_hash == "":
-                    ntds_user_hashes[username] = blank_hash
-                    processed_count += 1
-                elif nt_hash and not nt_hash.lower().startswith("no"):
-                    ntds_user_hashes[username] = nt_hash
-                    processed_count += 1
-                else:
-                    skipped_count += 1
-
-                if len(parts) >= 3:
-                    lm_hash = parts[2].lower()
-                    if lm_hash != default_lm_hash.lower() and lm_hash != no_lm_hash_indicator.lower():
-                        lm_hashes[username] = lm_hash
-
-    except FileNotFoundError:
-        print(f"Error: NTDS file not found: {ntds_file}")
-        return None, None
-    except IOError as e:
-        print(f"Error reading NTDS file: {e}")
-        return None, None
-
-    if not ntds_user_hashes:
-        print("Warning: No valid NTDS hashes were loaded")
-
-    return ntds_user_hashes, lm_hashes
-
 def find_cracked_accounts(cracked_hashes, ntlmv2_hashes, ntds_data):
     cracked_accounts = {}
     blank_hash = "31d6cfe0d16ae931b73c59d7e0c089c0"

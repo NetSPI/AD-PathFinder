@@ -13,7 +13,19 @@ from modules.analysis import Analysis
 from modules.diagnostics import DiagnosticsCollector
 from modules.main import run_client_report_generation
 from modules.reporting import Reporting
-from modules.utils import load_ntds_hashes, parse_potfile_partitioned
+from modules.utils import (
+    load_ntds_hashes_with_metadata,
+    parse_potfile_partitioned,
+    partition_ntds_by_domain,
+)
+
+
+def _load_ntds_for_domain(neo4j_data, ntds_path):
+    entries = load_ntds_hashes_with_metadata(str(ntds_path))
+    rid_map, prefix_map = neo4j_data.build_rid_to_domain_map()
+    all_domains = neo4j_data.get_all_domain_names()
+    domain_hashes = partition_ntds_by_domain(entries, rid_map, prefix_map, all_domains)
+    return domain_hashes.get(neo4j_data.get_domain_name(), ({}, {}))
 
 pytestmark = [pytest.mark.integration, pytest.mark.neo4j]
 
@@ -214,8 +226,7 @@ def pipeline_result(imported_dataset):
     assert ntds_path.is_file(), f"Missing {ntds_path}"
     assert potfile_path.is_file(), f"Missing {potfile_path}"
 
-    ntds_user_hashes, lm_hashes = load_ntds_hashes(str(ntds_path))
-    ntds_data = (ntds_user_hashes, lm_hashes)
+    ntds_data = _load_ntds_for_domain(imported_dataset, ntds_path)
 
     cracked_hashes, ntlmv2_hashes = parse_potfile_partitioned(str(potfile_path))
 
@@ -358,8 +369,7 @@ class TestReportArtifacts:
     ):
         monkeypatch.chdir(tmp_path)
 
-        ntds_user_hashes, lm_hashes = load_ntds_hashes(str(SAMPLE_DIR / "ntds.txt"))
-        ntds_data = (ntds_user_hashes, lm_hashes)
+        ntds_data = _load_ntds_for_domain(imported_dataset, SAMPLE_DIR / "ntds.txt")
         cracked_hashes, ntlmv2_hashes = parse_potfile_partitioned(
             str(SAMPLE_DIR / "hashcat.potfile")
         )

@@ -1,6 +1,6 @@
 from modules.account_analysis import AccountAnalysis
 from modules.analysis import Analysis
-from modules.utils import find_cracked_accounts, load_ntds_hashes
+from modules.utils import find_cracked_accounts, load_ntds_hashes_with_metadata
 
 
 BLANK_NTLM = "31d6cfe0d16ae931b73c59d7e0c089c0"
@@ -12,7 +12,7 @@ def test_find_cracked_accounts_detects_lowercase_blank_nt_hash():
     assert cracked == {"alice": ""}
 
 
-def test_load_ntds_hashes_normalizes_uppercase_blank_nt_hash(tmp_path):
+def test_load_ntds_hashes_with_metadata_normalizes_uppercase_blank_nt_hash(tmp_path):
     ntds_path = tmp_path / "ntds.txt"
     ntds_path.write_text(
         "TRAINING\\alice:1101:aad3b435b51404eeaad3b435b51404ee:"
@@ -20,10 +20,12 @@ def test_load_ntds_hashes_normalizes_uppercase_blank_nt_hash(tmp_path):
         encoding="utf-8",
     )
 
-    ntds_data = load_ntds_hashes(str(ntds_path))
+    entries = load_ntds_hashes_with_metadata(str(ntds_path))
 
-    assert ntds_data[0] == {"alice": BLANK_NTLM}
-    assert find_cracked_accounts({}, {}, ntds_data) == {"alice": ""}
+    assert len(entries) == 1
+    assert entries[0]['username'] == 'alice'
+    assert entries[0]['nt_hash'] == BLANK_NTLM
+    assert find_cracked_accounts({}, {}, ({'alice': BLANK_NTLM}, {})) == {'alice': ''}
 
 
 def test_account_analysis_detects_blank_password_without_potfile_matches():

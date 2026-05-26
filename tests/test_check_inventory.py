@@ -34,6 +34,7 @@ EXTRA_FIXTURES = {
     "sccm_priv_esc_linked_server_name_overmatch",
     "sccm_priv_esc_linked_server_empty_stub",
     "mssql_impersonation_branched",
+    "mssql_ntlm_relay_no_target",
 }
 
 

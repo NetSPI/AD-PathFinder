@@ -20,3 +20,9 @@ def test_fires_on_server_with_service_account_and_relay_target(clean_neo4j):
     assert "xp_dirtree" in detail
     assert "SQLSVC@TEST.LOCAL" in detail
     assert "WEB01.TEST.LOCAL" in detail
+
+
+def test_does_not_fire_without_smb_relay_target(clean_neo4j):
+    load_fixture(clean_neo4j, "mssql_ntlm_relay_no_target.cypher")
+    findings = run_check(MSSQLNTLMRelayCheck, clean_neo4j, domain_filter="TEST.LOCAL")
+    assert findings == {}

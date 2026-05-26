@@ -181,11 +181,13 @@ class MSSQLNTLMRelayCheck(MSSQLDomainMixin, Check):
         )
 
     def _format_relay_path(self, principals, host_name, service_account, relay_targets):
-        relay_target = ', '.join(relay_targets) if relay_targets else "no SMB signing-disabled relay targets"
+        if not relay_targets:
+            return ""
         if isinstance(principals, str):
             principals = [principals]
         if not principals:
             return ""
+        relay_target = ', '.join(relay_targets)
         shown = principals[:_MAX_RELAY_PRINCIPALS]
         lines = [
             f"{principal} > MSSQL_Connect > {host_name} > xp_dirtree > "

@@ -25,7 +25,7 @@ class SCCMTakeover6Check(Check):
             AND coalesce(target.enabled, true) = true {cdf}
             AND any(role IN target.SCCMSiteSystemRoles WHERE role = 'SMS Provider@' + site.siteCode)
 
-            OPTIONAL MATCH (ss:Computer)
+            MATCH (ss:Computer)
             WHERE ss.SCCMSiteSystemRoles IS NOT NULL
             AND coalesce(ss.enabled, true) = true
             AND any(role IN ss.SCCMSiteSystemRoles WHERE role = 'SMS Site Server@' + site.siteCode)
@@ -40,15 +40,13 @@ class SCCMTakeover6Check(Check):
 
         per_sid = defaultdict(list)
         for row in rows:
-            target_sid = row.get('target_sid') or ''
-            sms_provider = row.get('sms_provider') or ''
-            if not target_sid or not sms_provider:
+            target_sid = row.get('target_sid')
+            sms_provider = row.get('sms_provider')
+            site_server = row.get('site_server')
+            if not target_sid or not sms_provider or not site_server:
                 continue
 
-            site_server = row.get('site_server') or ''
-            site_code = row.get('site_code') or ''
-
-            desc = self.format_relay_finding(site_server, sms_provider, site=site_code or None)
+            desc = self.format_relay_finding(site_server, sms_provider, site=row.get('site_code') or None)
 
             if desc and desc not in per_sid[target_sid]:
                 per_sid[target_sid].append(desc)

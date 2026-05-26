@@ -13,4 +13,12 @@ def test_fires_on_smb_relay_to_sms_provider(clean_neo4j):
     assert SCCMTakeover6Check.RISK_LEVEL == "Critical"
     assert len(findings) == 1
     assert "S-1-5-21-TEST-1200" in findings
-    assert isinstance(findings["S-1-5-21-TEST-1200"], str)
+    detail = findings["S-1-5-21-TEST-1200"]
+    assert isinstance(detail, str)
+    assert "Coerce siteserver.test.local" in detail
+
+
+def test_does_not_fire_when_site_server_co_located_with_provider(clean_neo4j):
+    load_fixture(clean_neo4j, "sccm_takeover6_colocated.cypher")
+    findings = run_check(SCCMTakeover6Check, clean_neo4j, domain_filter="TEST.LOCAL")
+    assert findings == {}

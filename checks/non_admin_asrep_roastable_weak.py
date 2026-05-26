@@ -9,8 +9,7 @@ class NonAdminAsrepRoastableWeakCheck(Check):
         def check_non_admin_asrep_weak(user):
             if (not self.is_admin(user) and
                 user.get('asrepRoastable', False) and
-                self.has_weak_password(user) and
-                not user.get('is_computer', False)):
+                self.has_weak_password(user)):
                 return self.finding()
             return None
 

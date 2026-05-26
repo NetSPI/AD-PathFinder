@@ -7,9 +7,7 @@ class NonAdminWeakPasswordCheck(Check):
 
     def execute(self):
         def check_non_admin_weak_password(user):
-            if (not self.is_admin(user) and
-                self.has_weak_password(user) and
-                not user.get('is_computer', False)):
+            if not self.is_admin(user) and self.has_weak_password(user):
                 return self.finding()
             return None
 

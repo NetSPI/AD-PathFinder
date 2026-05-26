@@ -11,7 +11,6 @@ from .account_analysis import AccountAnalysis
 from .analysis import Analysis
 from .reporting import Reporting
 from .user_query import UserQuery
-from .utils import load_ntds_hashes
 from .audit_context import MultiDomainAuditContext
 from .BloodhoundImporter import BloodhoundImporter
 from .client_report_generator import ClientReportGenerator
@@ -531,35 +530,25 @@ def main():
         sys.exit(0)
 
     if args.ntds:
-        try:
-            ntds_hashes = load_ntds_hashes(args.ntds)
-            ntds_file_path = args.ntds  
-            print(f"NTDS hashes loaded from: {args.ntds}")
-        except Exception as e:
-            print(f"Failed to load NTDS hashes: {e}")
+        if not os.path.isfile(args.ntds):
+            print(f"Error: NTDS file not found: {args.ntds}")
             sys.exit(1)
+        ntds_file_path = args.ntds
+        print(f"NTDS path: {args.ntds}")
+    elif not args.ad:
+        while True:
+            ntds_input = prompt("Enter path to NTDS.dit file (press Enter to skip): ", completer=path_completer).strip()
+            if not ntds_input:
+                ntds_file_path = None
+                break
+            elif os.path.isfile(ntds_input):
+                ntds_file_path = ntds_input
+                print(f"NTDS path: {ntds_input}")
+                break
+            else:
+                print(f"The specified file was not found: {ntds_input}")
     else:
-        if not args.ad:
-            while True:
-                ntds_input = prompt("Enter path to NTDS.dit file (press Enter to skip): ", completer=path_completer).strip()
-                if not ntds_input:
-                    ntds_hashes = None
-                    ntds_file_path = None
-                    break
-                elif os.path.isfile(ntds_input):
-                    try:
-                        ntds_hashes = load_ntds_hashes(ntds_input)
-                        ntds_file_path = ntds_input  # Track the file path
-                        print(f"NTDS hashes loaded from: {ntds_input}")
-                        break
-                    except Exception as e:
-                        print(f"Failed to load NTDS hashes: {e}")
-                        print("Please try again or press Enter to skip.")
-                else:
-                    print(f"The specified file was not found: {ntds_input}")
-        else:
-            ntds_hashes = None
-            ntds_file_path = None
+        ntds_file_path = None
 
     neo4j_data = Neo4jData(conn, excluded_relationships=excluded_relationships, diagnostics=diagnostics)
     domain_name = neo4j_data.get_domain_name()
@@ -577,6 +566,8 @@ def main():
         ntds_file_path=ntds_file_path,
         diagnostics=diagnostics,
     )
+
+    ntds_hashes = audit_context.domain_hashes.get(domain_name)
 
     if audit_context.hashcat_file_path:
         cracked_hashes = audit_context.cracked_passwords_global

@@ -33,6 +33,7 @@ EXTRA_FIXTURES = {
     "sccm_takeover1_source_filter",
     "sccm_priv_esc_linked_server_name_overmatch",
     "sccm_priv_esc_linked_server_empty_stub",
+    "mssql_impersonation_branched",
 }
 
 

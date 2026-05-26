@@ -41,28 +41,28 @@ class MSSQLImpersonationCheck(MSSQLDomainMixin, Check):
             if not host_sid:
                 continue
             for target in targets:
-                rest = self._follow_chain(impersonation_map, target, {source})
-                chain = f"{source} -> EXECUTE AS {target}"
-                if rest:
-                    chain += f" -> {rest}"
-                chains_by_host.setdefault(host_sid, []).append(chain)
+                for suffix in self._follow_chains(impersonation_map, target, frozenset({source})):
+                    chain = f"{source} -> EXECUTE AS {target}"
+                    if suffix:
+                        chain += f" -> {suffix}"
+                    chains_by_host.setdefault(host_sid, []).append(chain)
 
         results = {}
         for host_sid, chains in chains_by_host.items():
             results[host_sid] = self.finding("\n".join(sorted(chains)))
         return results
 
-    def _follow_chain(self, impersonation_map, login, visited):
+    def _follow_chains(self, impersonation_map, login, visited):
         if login in visited:
-            return ""
-        visited.add(login)
+            return [""]
+        visited = visited | {login}
         targets = impersonation_map.get(login, [])
         if not targets:
-            return ""
-        target = targets[0]
-        if target in visited:
-            return ""
-        rest = self._follow_chain(impersonation_map, target, visited.copy())
-        if rest:
-            return f"EXECUTE AS {target} -> {rest}"
-        return f"EXECUTE AS {target}"
+            return [""]
+        suffixes = []
+        for target in targets:
+            if target in visited:
+                continue
+            for sub in self._follow_chains(impersonation_map, target, visited):
+                suffixes.append(f"EXECUTE AS {target} -> {sub}" if sub else f"EXECUTE AS {target}")
+        return suffixes or [""]

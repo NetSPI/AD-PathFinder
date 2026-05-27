@@ -4,6 +4,7 @@ from .node_type_cache import (
     ad_reportable_labels_from_labels,
     extract_ad_report_type_from_labels,
 )
+from .relationships import ABUSE_RELS
 
 
 _PRESERVABLE_GROUP_TARGET_TYPES = set(AD_REPORT_OBJECT_TYPES) | {'SCCM Site'}
@@ -34,20 +35,7 @@ class GroupAnalysisMixin:
             return self.builtin_groups_paths_cache
 
         # MSSQL relationships excluded — handled by dedicated MSSQL checks
-        interesting_rels = ["Owns", "GenericAll", "GenericWrite", "WriteOwner", "WriteDacl",
-                           "AdminTo", "CanPSRemote", "CanRDP", "ForceChangePassword",
-                           "AllExtendedRights", "AddMember", "AddSelf", "AllowedToDelegate", "AllowedToAct",
-                           "AddAllowedToAct",
-                           "DCSync", "ReadLAPSPassword", "ReadGMSAPassword", "SyncLAPSPassword",
-                           "DumpSMSAPassword", "SQLAdmin",
-                           "WriteSPN", "AddKeyCredentialLink", "WriteAccountRestrictions",
-                           "GPLink", "WriteGPLink", "GoldenCert", "ManageCA", "ManageCertificates",
-                           "CoerceToTGT", "CoerceAndRelayNTLMToADCS",
-                           "CoerceAndRelayNTLMToSMB", "CoerceAndRelayNTLMToLDAP", "CoerceAndRelayNTLMToLDAPS",
-                           "CoerceAndRelayToSMB", "CoerceAndRelayToAdminService",
-                           "AbuseTGTDelegation", "CrossForestTrust"]
-
-        filtered_rels = [rel for rel in interesting_rels if rel.upper() not in self.excluded_relationships]
+        filtered_rels = [rel for rel in ABUSE_RELS if rel.upper() not in self.excluded_relationships]
 
         domain_filter_clause = self._domain_condition("m")
 
@@ -222,20 +210,7 @@ class GroupAnalysisMixin:
         if not force_refresh and self.common_groups_paths_cache is not None:
             return self.common_groups_paths_cache
 
-        interesting_rels = ["Owns", "GenericAll", "GenericWrite", "WriteOwner", "WriteDacl",
-                           "AdminTo", "CanPSRemote", "CanRDP", "ForceChangePassword",
-                           "AllExtendedRights", "AddMember", "AddSelf", "AllowedToDelegate", "AllowedToAct",
-                           "AddAllowedToAct",
-                           "DCSync", "ReadLAPSPassword", "ReadGMSAPassword", "SyncLAPSPassword",
-                           "DumpSMSAPassword", "SQLAdmin",
-                           "WriteSPN", "AddKeyCredentialLink", "WriteAccountRestrictions",
-                           "GPLink", "WriteGPLink", "GoldenCert", "ManageCA", "ManageCertificates",
-                           "CoerceToTGT", "CoerceAndRelayNTLMToADCS",
-                           "CoerceAndRelayNTLMToSMB", "CoerceAndRelayNTLMToLDAP", "CoerceAndRelayNTLMToLDAPS",
-                           "CoerceAndRelayToSMB", "CoerceAndRelayToAdminService",
-                           "AbuseTGTDelegation", "CrossForestTrust"]
-
-        filtered_rels = [rel for rel in interesting_rels if rel.upper() not in self.excluded_relationships]
+        filtered_rels = [rel for rel in ABUSE_RELS if rel.upper() not in self.excluded_relationships]
 
         domain_filter_group = self._domain_condition("g")
         domain_filter_user = self._domain_condition("u")

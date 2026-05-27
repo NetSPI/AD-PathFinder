@@ -4,6 +4,7 @@ from .domain_filter import DomainFilterMixin
 from .neo4j_escalation import EscalationPathsMixin
 from .neo4j_groups import GroupAnalysisMixin
 from .hv_groups import admin_groups_for_domain
+from .relationships import ESCALATION_RELS
 from .node_type_cache import (
     AD_REPORT_LABELS,
     NON_REPORTABLE_NODE_LABELS,
@@ -917,26 +918,10 @@ class Neo4jData(EscalationPathsMixin, GroupAnalysisMixin, DomainFilterMixin):
         return ""
     
     def get_interesting_relationships(self):
-        interesting_rels = [
-            'MemberOf',
-            'Owns', 'GenericAll', 'GenericWrite', 'WriteOwner', 'WriteDacl',
-            'AdminTo', 'CanPSRemote', 'CanRDP', 'ForceChangePassword',
-            'AllExtendedRights', 'AddMember', 'AddSelf', 'AllowedToDelegate', 'AllowedToAct',
-            'AddAllowedToAct',
-            'DCSync', 'ReadLAPSPassword', 'ReadGMSAPassword', 'SyncLAPSPassword',
-            'DumpSMSAPassword', 'SQLAdmin',
-            'WriteSPN', 'AddKeyCredentialLink', 'WriteAccountRestrictions',
-            'GPLink', 'WriteGPLink', 'GoldenCert', 'ManageCA', 'ManageCertificates',
-            'CoerceToTGT', 'CoerceAndRelayNTLMToADCS',
-            'CoerceAndRelayNTLMToSMB', 'CoerceAndRelayNTLMToLDAP', 'CoerceAndRelayNTLMToLDAPS',
-            'CoerceAndRelayToSMB', 'CoerceAndRelayToAdminService',
-            'AbuseTGTDelegation', 'CrossForestTrust'
-        ]
-        
         if self.excluded_relationships:
-            filtered_rels = [rel for rel in interesting_rels if rel.upper() not in self.excluded_relationships]
+            filtered_rels = [rel for rel in ESCALATION_RELS if rel.upper() not in self.excluded_relationships]
         else:
-            filtered_rels = interesting_rels
+            filtered_rels = ESCALATION_RELS
 
         pattern = "|".join(filtered_rels)
         if not pattern:

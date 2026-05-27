@@ -38,6 +38,7 @@ EXTRA_FIXTURES = {
     "sccm_takeover6_colocated",
     "builtin_group_escalation_sccm_site",
     "esc3_victim_no_agent",
+    "esc3_victim_disjoint_acl",
 }
 
 

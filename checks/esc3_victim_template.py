@@ -20,6 +20,24 @@ from checks.adcs_base import ADCSCheck
 
 CERT_REQ_AGENT_OID = '1.3.6.1.4.1.311.20.2.1'
 
+# Member space of the four low-priv groups, for chain-exploitability checks.
+# AUTH USERS / EVERYONE cover both users and computers; DOMAIN USERS covers
+# user accounts only; DOMAIN COMPUTERS covers computer accounts only.
+_GROUP_MEMBER_SPACE = {
+    'AUTHENTICATED USERS': frozenset({'USERS', 'COMPUTERS'}),
+    'EVERYONE': frozenset({'USERS', 'COMPUTERS'}),
+    'DOMAIN USERS': frozenset({'USERS'}),
+    'DOMAIN COMPUTERS': frozenset({'COMPUTERS'}),
+}
+
+
+def _member_space(group_names):
+    space = set()
+    for name in group_names:
+        bare = name.split('@', 1)[0].upper()
+        space |= _GROUP_MEMBER_SPACE.get(bare, frozenset())
+    return space
+
 
 @check(risk="High", category="ESC3 — Victim Template")
 class ESC3VictimTemplateCheck(ADCSCheck):
@@ -62,17 +80,19 @@ class ESC3VictimTemplateCheck(ADCSCheck):
         results = {}
         for row in rows:
             template = row.get('template')
-            abusers = row.get('abusers')
+            abusers = row.get('abusers') or []
             agent_templates = row.get('agent_templates') or []
             agent_abusers = row.get('agent_abusers') or []
-            if not template or not abusers or not agent_templates:
+            if not template or not abusers or not agent_templates or not agent_abusers:
+                continue
+            if not (_member_space(agent_abusers) & _member_space(abusers)):
                 continue
             tname = self._strip_domain(template)
             groups = self._format_groups(abusers)
             agent_names = sorted(self._strip_domain(a) for a in agent_templates)
             agent_label = f"agent '{agent_names[0]}'" if len(agent_names) == 1 \
                 else "agents " + ', '.join(f"'{a}'" for a in agent_names)
-            agent_groups = self._format_groups(agent_abusers) if agent_abusers else "no low-privilege group"
+            agent_groups = self._format_groups(agent_abusers)
             ca = row.get('ca_name', '')
             host = row.get('ca_host', '')
             results[f"{tname} ({ca} on {host})"] = self.finding(

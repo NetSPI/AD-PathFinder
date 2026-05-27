@@ -9,7 +9,7 @@ ABUSE_RELS = [
     'GPLink', 'WriteGPLink', 'GoldenCert', 'ManageCA', 'ManageCertificates',
     'CoerceToTGT', 'CoerceAndRelayNTLMToADCS',
     'CoerceAndRelayNTLMToSMB', 'CoerceAndRelayNTLMToLDAP', 'CoerceAndRelayNTLMToLDAPS',
-    'CoerceAndRelayToSMB', 'CoerceAndRelayToAdminService',
+    'CoerceAndRelayToADCS', 'CoerceAndRelayToSMB', 'CoerceAndRelayToAdminService',
     'AbuseTGTDelegation', 'CrossForestTrust',
 ]
 

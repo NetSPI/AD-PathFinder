@@ -14,7 +14,9 @@ def test_fires_for_v1_and_cosign_victims_but_skips_plain_v2(clean_neo4j):
     assert "VictimV1 (TEST-CA on ca.test.local)" in findings
     assert "VictimCoSign (TEST-CA on ca.test.local)" in findings
     assert "NotVictim (TEST-CA on ca.test.local)" not in findings
-    assert "via paired ESC3 agent cert" in findings["VictimV1 (TEST-CA on ca.test.local)"]
+    desc = findings["VictimV1 (TEST-CA on ca.test.local)"]
+    assert "via paired ESC3 agent 'Agent'" in desc
+    assert "enrollable by DOMAIN USERS" in desc
 
 
 def test_does_not_fire_when_no_agent_template_on_same_ca(clean_neo4j):

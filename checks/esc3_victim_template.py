@@ -36,7 +36,9 @@ class ESC3VictimTemplateCheck(ADCSCheck):
               AND agent_t.requiresmanagerapproval = false
               AND coalesce(agent_t.authorizedsignatures, 0) = 0
               AND a_g.name IN $target_groups
-            WITH DISTINCT ca
+            WITH ca,
+                 collect(DISTINCT agent_t.name) AS agent_templates,
+                 collect(DISTINCT a_g.name) AS agent_abusers
             MATCH (g:Group)-[:Enroll|AutoEnroll]->(t:CertTemplate)-[:PublishedTo]->(ca)
             WHERE t.authenticationenabled = true
               AND t.requiresmanagerapproval = false
@@ -50,7 +52,8 @@ class ESC3VictimTemplateCheck(ADCSCheck):
               )
               AND g.name IN $target_groups
             RETURN t.name AS template, ca.caname AS ca_name, ca.dnshostname AS ca_host,
-                   collect(DISTINCT g.name) AS abusers
+                   collect(DISTINCT g.name) AS abusers,
+                   agent_templates, agent_abusers
             ORDER BY template
         """, {'target_groups': target_groups, 'cert_req_agent': CERT_REQ_AGENT_OID})
         return self._format_results(rows) if rows else {}
@@ -60,13 +63,19 @@ class ESC3VictimTemplateCheck(ADCSCheck):
         for row in rows:
             template = row.get('template')
             abusers = row.get('abusers')
-            if not template or not abusers:
+            agent_templates = row.get('agent_templates') or []
+            agent_abusers = row.get('agent_abusers') or []
+            if not template or not abusers or not agent_templates:
                 continue
             tname = self._strip_domain(template)
             groups = self._format_groups(abusers)
+            agent_names = sorted(self._strip_domain(a) for a in agent_templates)
+            agent_label = f"agent '{agent_names[0]}'" if len(agent_names) == 1 \
+                else "agents " + ', '.join(f"'{a}'" for a in agent_names)
+            agent_groups = self._format_groups(agent_abusers) if agent_abusers else "no low-privilege group"
             ca = row.get('ca_name', '')
             host = row.get('ca_host', '')
             results[f"{tname} ({ca} on {host})"] = self.finding(
-                f"{groups} (via paired ESC3 agent cert)"
+                f"{groups} (via paired ESC3 {agent_label} enrollable by {agent_groups})"
             )
         return results

@@ -39,6 +39,7 @@ EXTRA_FIXTURES = {
     "builtin_group_escalation_sccm_site",
     "esc3_victim_no_agent",
     "esc3_victim_disjoint_acl",
+    "esc3_victim_mixed_acl",
 }
 
 

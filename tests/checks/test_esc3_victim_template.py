@@ -29,3 +29,14 @@ def test_does_not_fire_when_agent_and_victim_acls_are_disjoint(clean_neo4j):
     load_fixture(clean_neo4j, "esc3_victim_disjoint_acl.cypher")
     findings = run_check(ESC3VictimTemplateCheck, clean_neo4j)
     assert findings == {}
+
+
+def test_lists_only_contributing_agent_enrollers(clean_neo4j):
+    load_fixture(clean_neo4j, "esc3_victim_mixed_acl.cypher")
+    findings = run_check(ESC3VictimTemplateCheck, clean_neo4j)
+    key = "MachineVictim (TEST-CA-4 on ca4.test.local)"
+    assert key in findings
+    desc = findings[key]
+    assert "DOMAIN COMPUTERS (via paired ESC3 agent 'Agent'" in desc
+    assert "AUTHENTICATED USERS" in desc
+    assert "DOMAIN USERS" not in desc

@@ -39,6 +39,10 @@ def _member_space(group_names):
     return space
 
 
+def _contributing(groups, other_space):
+    return [g for g in groups if _member_space([g]) & other_space]
+
+
 @check(risk="High", category="ESC3 — Victim Template")
 class ESC3VictimTemplateCheck(ADCSCheck):
 
@@ -85,14 +89,18 @@ class ESC3VictimTemplateCheck(ADCSCheck):
             agent_abusers = row.get('agent_abusers') or []
             if not template or not abusers or not agent_templates or not agent_abusers:
                 continue
-            if not (_member_space(agent_abusers) & _member_space(abusers)):
+            agent_space = _member_space(agent_abusers)
+            victim_space = _member_space(abusers)
+            if not (agent_space & victim_space):
                 continue
+            contributing_agents = _contributing(agent_abusers, victim_space)
+            contributing_victims = _contributing(abusers, agent_space)
             tname = self._strip_domain(template)
-            groups = self._format_groups(abusers)
+            groups = self._format_groups(contributing_victims)
             agent_names = sorted(self._strip_domain(a) for a in agent_templates)
             agent_label = f"agent '{agent_names[0]}'" if len(agent_names) == 1 \
                 else "agents " + ', '.join(f"'{a}'" for a in agent_names)
-            agent_groups = self._format_groups(agent_abusers)
+            agent_groups = self._format_groups(contributing_agents)
             ca = row.get('ca_name', '')
             host = row.get('ca_host', '')
             results[f"{tname} ({ca} on {host})"] = self.finding(

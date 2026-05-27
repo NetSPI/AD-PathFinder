@@ -1,14 +1,16 @@
 """
-AD CS ESC6: EDITF_ATTRIBUTESUBJECTALTNAME2 enabled on CA, combined with templates
+AD CS ESC6b: EDITF_ATTRIBUTESUBJECTALTNAME2 enabled on CA, combined with templates
 that have CT_FLAG_NO_SECURITY_EXTENSION (ESC9). On patched systems (post-May 2022),
 only templates missing the SID security extension are exploitable via SAN injection.
+The pre-patch case where any auth-enabled template is exploitable via the CA-level
+flag alone is ESC6a — see checks/esc6a_user_specifies_san.py.
 """
 
 from checks.core import check
 from checks.adcs_base import ADCSCheck
 
 
-@check(risk="Critical", category="ESC6 — CA Allows User-Specified SAN")
+@check(risk="Critical", category="ESC6b — CA Allows User-Specified SAN (post-patch)")
 class ESC6UserSpecifiesSANCheck(ADCSCheck):
 
     def execute(self):

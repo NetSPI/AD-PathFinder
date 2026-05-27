@@ -6,7 +6,7 @@ ADPathFinder is an attack mapping tool for pentesters and red teamers. It analys
 
 <p align="center">
   <a href="docs/images/demo-slideshow.mp4">
-    <img src="docs/images/demo-slideshow.webp" alt="ADPathFinder CLI demo showing grouped risk findings and attack paths" width="1000">
+    <img src="docs/images/demo-slideshow.webp" alt="ADPathFinder CLI demo showing grouped risk findings and attack paths" width="850">
   </a>
 </p>
 
@@ -125,14 +125,14 @@ adpathfinder --ad --pwd Contoso,ContosoIT --ntds ntds.txt -p hashcat.potfile --d
 | **Render** | Writes HTML reports with SVG path graphs, mitigation notes, PowerShell validation steps, and remediated state tracking, plus text, JSON, and diagnostics outputs |
 
 <p align="center">
-  <img src="docs/images/workflow.svg" alt="ADPathFinder workflow diagram" width="900">
+  <img src="docs/images/workflow.svg" alt="ADPathFinder workflow diagram" width="850">
 </p>
 
 ## AD HTML Report
 
 <p align="center">
   <a href="docs/images/ad-report-slideshow.mp4">
-    <img src="docs/images/ad-report-slideshow.webp" alt="ADPathFinder AD report walkthrough showing overview, mitigation, and confirmation steps" width="1000">
+    <img src="docs/images/ad-report-slideshow.webp" alt="ADPathFinder AD report walkthrough showing overview, mitigation, and confirmation steps" width="850">
   </a>
 </p>
 
@@ -140,7 +140,7 @@ adpathfinder --ad --pwd Contoso,ContosoIT --ntds ntds.txt -p hashcat.potfile --d
 
 <p align="center">
   <a href="docs/images/password-audit-slideshow.mp4">
-    <img src="docs/images/password-audit-slideshow.webp" alt="ADPathFinder password audit report walkthrough showing cracked categories, policy compliance, password lengths, and roastable accounts" width="1000">
+    <img src="docs/images/password-audit-slideshow.webp" alt="ADPathFinder password audit report walkthrough showing cracked categories, policy compliance, password lengths, and roastable accounts" width="850">
   </a>
 </p>
 

@@ -70,7 +70,7 @@ class SCCMTakeover1Check(SCCMDomainMixin, Check):
                 seen.add(dedup_key)
 
                 epa = row.get('epa_status', '')
-                desc = f"Coerce {coerce_server} -> MSSQL relay to {target_server}"
+                desc = f"Coerce {coerce_server} -> CoerceAndRelayToMSSQL > {target_server}"
                 if site_code:
                     desc += f" (Site {site_code})"
                 if epa:

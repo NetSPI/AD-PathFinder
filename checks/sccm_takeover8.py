@@ -98,6 +98,6 @@ class SCCMTakeover8Check(Check):
                 protos.append('LDAPS')
             proto = '/'.join(protos) or 'LDAP/LDAPS'
             sources_str = ', '.join(f"{n} ({r})" for n, r in info['sources'])
-            desc = f"Coerce {sources_str} -> HTTP-to-{proto} NTLM relay to {info['dc_name']}"
+            desc = f"Coerce {sources_str} -> CoerceAndRelayNTLMTo{proto} > {info['dc_name']}"
             results[dc_sid] = self.finding(desc)
         return results

@@ -192,9 +192,9 @@ class VulnerabilityCheck:
                              site: str | None = None,
                              qualifier: str | None = None) -> str:
         if coerce_source:
-            desc = f"Coerce {coerce_source} -> SMB relay to {target}"
+            desc = f"Coerce {coerce_source} -> CoerceAndRelayToSMB > {target}"
         else:
-            desc = f"SMB relay to {target}"
+            desc = f"CoerceAndRelayToSMB > {target}"
         if qualifier:
             desc += f" {qualifier}"
         if site:

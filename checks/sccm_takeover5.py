@@ -96,7 +96,7 @@ class SCCMTakeover5Check(SCCMDomainMixin, Check):
         sms_provider = path.get('sms_provider', 'unknown')
         site_code = path.get('site_code', '')
 
-        desc = f"Coerce {site_server} -> AdminService relay to https://{sms_provider}/AdminService"
+        desc = f"Coerce {site_server} -> CoerceAndRelayToAdminService > https://{sms_provider}/AdminService"
 
         if site_code:
             desc += f" (Site {site_code})"

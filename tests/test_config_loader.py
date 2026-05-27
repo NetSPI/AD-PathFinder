@@ -304,10 +304,12 @@ class TestExclusionsConfigWins(unittest.TestCase):
                 resolved = load(ini)
             self.assertEqual(resolved.excluded_relationships, ("First", "Second", "Third"))
 
-    def test_default_list_contains_audited_43_entries(self):
-        self.assertEqual(len(DEFAULT_EXCLUDED_RELATIONSHIPS), 43)
+    def test_default_list_contains_audited_45_entries(self):
+        self.assertEqual(len(DEFAULT_EXCLUDED_RELATIONSHIPS), 45)
         self.assertIn("ADCSESC2", DEFAULT_EXCLUDED_RELATIONSHIPS)
         self.assertIn("ADCSESC7", DEFAULT_EXCLUDED_RELATIONSHIPS)
+        self.assertIn("CoerceAndRelayNTLMToLDAP", DEFAULT_EXCLUDED_RELATIONSHIPS)
+        self.assertIn("CoerceAndRelayNTLMToLDAPS", DEFAULT_EXCLUDED_RELATIONSHIPS)
         for absent in ("ADCSESC10a", "ADCSESC10b", "ADCSESC13"):
             self.assertNotIn(absent, DEFAULT_EXCLUDED_RELATIONSHIPS)
 

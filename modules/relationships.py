@@ -7,8 +7,7 @@ ABUSE_RELS = [
     'DumpSMSAPassword', 'SQLAdmin',
     'WriteSPN', 'AddKeyCredentialLink', 'WriteAccountRestrictions',
     'GPLink', 'WriteGPLink', 'GoldenCert', 'ManageCA', 'ManageCertificates',
-    'CoerceToTGT', 'CoerceAndRelayNTLMToADCS',
-    'CoerceAndRelayNTLMToSMB', 'CoerceAndRelayNTLMToLDAP', 'CoerceAndRelayNTLMToLDAPS',
+    'CoerceToTGT', 'CoerceAndRelayNTLMToSMB',
     'CoerceAndRelayToADCS', 'CoerceAndRelayToSMB', 'CoerceAndRelayToAdminService',
     'AbuseTGTDelegation', 'CrossForestTrust',
 ]

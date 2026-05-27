@@ -24,7 +24,8 @@ DEFAULT_EXCLUDED_RELATIONSHIPS: tuple[str, ...] = (
     'ADCSESC1', 'ADCSESC2', 'ADCSESC3', 'ADCSESC4', 'ADCSESC6a', 'ADCSESC6b',
     'ADCSESC7', 'ADCSESC8', 'ADCSESC9a', 'ADCSESC9b',
     'ExecuteDCOM', 'RemoteInteractiveLogonRight', 'GPLink', 'HasSession',
-    'GoldenCert', 'ManageCA', 'ManageCertificates', 'CoerceAndRelayNTLMToADCS',
+    'GoldenCert', 'ManageCA', 'ManageCertificates',
+    'CoerceAndRelayNTLMToADCS', 'CoerceAndRelayNTLMToLDAP', 'CoerceAndRelayNTLMToLDAPS',
 )
 
 

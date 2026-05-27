@@ -6,6 +6,9 @@ from .node_type_cache import (
 )
 
 
+_PRESERVABLE_GROUP_TARGET_TYPES = set(AD_REPORT_OBJECT_TYPES) | {'SCCM Site'}
+
+
 class GroupAnalysisMixin:
     def _normalise_group_target_labels(self, records):
         for record in records:
@@ -14,7 +17,7 @@ class GroupAnalysisMixin:
 
             target_type = extract_ad_report_type_from_labels(raw_labels)
             current_type = record.get('Target Object Type')
-            if target_type == 'Unknown' and current_type in AD_REPORT_OBJECT_TYPES:
+            if target_type == 'Unknown' and current_type in _PRESERVABLE_GROUP_TARGET_TYPES:
                 target_type = current_type
 
             reportable_labels = ad_reportable_labels_from_labels(raw_labels)
@@ -108,7 +111,7 @@ class GroupAnalysisMixin:
             groupFriendlyName AS `Group Type`,
             m.objectid AS `Source Group SID`,
             m.distinguishedname AS `Source Group DN`,
-            n.name AS `Target Object`,
+            coalesce(n.name, n.displayName, n.siteCode) AS `Target Object`,
             CASE
                 WHEN "User" IN LABELS(n) THEN "User"
                 WHEN "Computer" IN LABELS(n) THEN "Computer"
@@ -116,6 +119,7 @@ class GroupAnalysisMixin:
                 WHEN "GPO" IN LABELS(n) THEN "GPO"
                 WHEN "OU" IN LABELS(n) THEN "OU"
                 WHEN "Domain" IN LABELS(n) THEN "Domain"
+                WHEN "SCCM_Site" IN LABELS(n) THEN "SCCM Site"
                 // Older BloodHound exports can model certificate templates as :Base with a template DN.
                 WHEN "Base" IN LABELS(n) AND n.distinguishedname =~ ".*CN=CERTIFICATE TEMPLATES.*" THEN "CertTemplate"
                 WHEN "CertificateTemplate" IN LABELS(n) THEN "CertTemplate"
@@ -126,7 +130,7 @@ class GroupAnalysisMixin:
             LABELS(n) AS `Target Object Types`,
             interleavedPath +
                 CASE
-                    WHEN p IS NOT NULL THEN [LAST(NODES(p)).name]
+                    WHEN p IS NOT NULL THEN [coalesce(LAST(NODES(p)).name, LAST(NODES(p)).displayName, LAST(NODES(p)).siteCode)]
                     ELSE []
                 END AS `Full Path`,
             CASE
@@ -281,7 +285,7 @@ class GroupAnalysisMixin:
             memberCount AS `Member Count`,
             g.objectid AS `Source Group SID`,
             g.distinguishedname AS `Source Group DN`,
-            n.name AS `Target Object`,
+            coalesce(n.name, n.displayName, n.siteCode) AS `Target Object`,
             CASE
                 WHEN "User" IN LABELS(n) THEN "User"
                 WHEN "Computer" IN LABELS(n) THEN "Computer"
@@ -289,6 +293,7 @@ class GroupAnalysisMixin:
                 WHEN "GPO" IN LABELS(n) THEN "GPO"
                 WHEN "OU" IN LABELS(n) THEN "OU"
                 WHEN "Domain" IN LABELS(n) THEN "Domain"
+                WHEN "SCCM_Site" IN LABELS(n) THEN "SCCM Site"
                 // Older BloodHound exports can model certificate templates as :Base with a template DN.
                 WHEN "Base" IN LABELS(n) AND n.distinguishedname =~ ".*CN=CERTIFICATE TEMPLATES.*" THEN "CertTemplate"
                 WHEN "CertificateTemplate" IN LABELS(n) THEN "CertTemplate"
@@ -299,7 +304,7 @@ class GroupAnalysisMixin:
             LABELS(n) AS `Target Object Types`,
             interleavedPath +
                 CASE
-                    WHEN p IS NOT NULL THEN [LAST(NODES(p)).name]
+                    WHEN p IS NOT NULL THEN [coalesce(LAST(NODES(p)).name, LAST(NODES(p)).displayName, LAST(NODES(p)).siteCode)]
                     ELSE []
                 END AS `Full Path`,
             CASE

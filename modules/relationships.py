@@ -13,3 +13,6 @@ ABUSE_RELS = [
 ]
 
 ESCALATION_RELS = ['MemberOf'] + ABUSE_RELS
+
+WRITE_CONTROL_RELS = ['Owns', 'GenericAll', 'GenericWrite', 'WriteDacl', 'WriteOwner',
+                      'WriteAccountRestrictions']

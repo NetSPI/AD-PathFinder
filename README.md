@@ -4,6 +4,8 @@
 
 ADPathFinder is an attack mapping tool for pentesters and red teamers. It analyses SharpHound data and unifies it with OpenGraph plugins to surface attack paths to high-value targets such as Domain Admins and Domain Controllers, starting from low-privileged users and computers. MSSQLHound and ConfigManBearPig are supported natively, extending coverage across AD, ADCS, SCCM, and MSSQL.
 
+> **Blog:** [OpenGraph attack-path mapping in BloodHound CE](https://www.netspi.com/blog/technical-blog/network-pentesting/adpathfinder-opengraph-attack-path-mapping-in-bloodhound-ce/)
+
 <p align="center">
   <a href="docs/images/demo-slideshow.mp4">
     <img src="docs/images/demo-slideshow.webp" alt="ADPathFinder CLI demo showing grouped risk findings and attack paths" width="850">

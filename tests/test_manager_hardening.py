@@ -25,6 +25,9 @@ class FakeNeo4jData:
     def get_all_computers_with_attributes(self):
         return []
 
+    def get_entity_counts(self):
+        return {}
+
 class FakeDomainNeo4jData(FakeNeo4jData):
     def __init__(self, domain):
         super().__init__()

@@ -817,6 +817,22 @@ class Neo4jData(EscalationPathsMixin, GroupAnalysisMixin, DomainFilterMixin):
         self.all_computers_cache = self.conn.query(query, name="get_all_computers_with_attributes")
         return self.all_computers_cache
 
+    def get_entity_counts(self):
+        # The users/computers caches are enabled-only, so cannot report disabled counts
+        query = """
+        MATCH (n)
+        WHERE (n:User OR n:Computer) AND n.name IS NOT NULL""" + self._domain_condition("n") + """
+        RETURN CASE WHEN n:Computer THEN 'computers' ELSE 'users' END AS kind,
+               count(*) AS total,
+               sum(CASE WHEN n.enabled = true THEN 1 ELSE 0 END) AS enabled,
+               sum(CASE WHEN n.enabled = false THEN 1 ELSE 0 END) AS disabled
+        """
+        rows = self.conn.query(query, name="get_entity_counts")
+        return {
+            r['kind']: {'total': r['total'], 'enabled': r['enabled'], 'disabled': r['disabled']}
+            for r in rows
+        } if rows else {}
+
     def get_all_enterprise_cas_with_attributes(self, force_refresh=False):
         if not force_refresh and hasattr(self, 'all_enterprise_cas_cache') and self.all_enterprise_cas_cache is not None:
             return self.all_enterprise_cas_cache

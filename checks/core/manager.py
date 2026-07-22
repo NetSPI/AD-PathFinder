@@ -252,20 +252,17 @@ class VulnerabilityFrameworkManager:
 
     def _record_entity_summary(self):
         summary = {}
+        counts = self.neo4j_data.get_entity_counts()
         users = self.shared_cache.get(DataTypes.USERS)
         if users:
             summary["users"] = {
-                "total": len(users),
-                "enabled": sum(1 for u in users if u.get('enabled')),
-                "disabled": sum(1 for u in users if u.get('enabled') is False),
+                **counts.get("users", {}),
                 "admin": sum(1 for u in users if u.get('isAdmin')),
             }
         computers = self.shared_cache.get(DataTypes.COMPUTERS)
         if computers:
             summary["computers"] = {
-                "total": len(computers),
-                "enabled": sum(1 for c in computers if c.get('enabled')),
-                "disabled": sum(1 for c in computers if c.get('enabled') is False),
+                **counts.get("computers", {}),
                 "domain_controllers": sum(1 for c in computers if c.get('isDomainController') is True),
                 "unconstrained_delegation": sum(1 for c in computers if c.get('unconstrainedDelegation') is True),
             }

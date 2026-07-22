@@ -388,7 +388,7 @@ class TestDomainKeyedDiagnostics(unittest.TestCase):
 
 class TestEntitySummaryDomainKeyed(unittest.TestCase):
 
-    def _record_for_domain(self, diagnostics, domain, users, computers):
+    def _record_for_domain(self, diagnostics, domain, users, computers, counts):
         from checks.core.manager import VulnerabilityFrameworkManager
         from checks.core.constants import DataTypes
 
@@ -399,6 +399,8 @@ class TestEntitySummaryDomainKeyed(unittest.TestCase):
                 self.computer_sids = set()
             def get_domain_name(self):
                 return self._domain_filter
+            def get_entity_counts(self):
+                return counts
 
         manager = VulnerabilityFrameworkManager(_Neo4j(domain), diagnostics=diagnostics)
         manager.shared_cache[DataTypes.USERS] = users
@@ -409,16 +411,22 @@ class TestEntitySummaryDomainKeyed(unittest.TestCase):
         diagnostics = DiagnosticsCollector()
         self._record_for_domain(
             diagnostics, "TRAINING.LOCAL",
-            users=[{"enabled": True, "isAdmin": True}] * 3153,
-            computers=[{"enabled": True, "isDomainController": True}] * 124,
+            users=[{"isAdmin": True}] * 3153,
+            computers=[{"isDomainController": True}] * 124,
+            counts={"users": {"total": 3153, "enabled": 3153, "disabled": 0},
+                    "computers": {"total": 124, "enabled": 124, "disabled": 0}},
         )
         self._record_for_domain(
             diagnostics, "SECRET.TRAINING.LOCAL",
-            users=[{"enabled": True}] * 92,
-            computers=[{"enabled": False}] * 27,
+            users=[{}] * 92,
+            computers=[{}] * 27,
+            counts={"users": {"total": 92, "enabled": 92, "disabled": 0},
+                    "computers": {"total": 27, "enabled": 0, "disabled": 27}},
         )
 
         self.assertEqual(diagnostics.entity_summary["TRAINING.LOCAL"]["users"]["total"], 3153)
         self.assertEqual(diagnostics.entity_summary["TRAINING.LOCAL"]["computers"]["total"], 124)
         self.assertEqual(diagnostics.entity_summary["SECRET.TRAINING.LOCAL"]["users"]["total"], 92)
         self.assertEqual(diagnostics.entity_summary["SECRET.TRAINING.LOCAL"]["computers"]["total"], 27)
+        # counts come from the graph, not the enabled-only caches
+        self.assertEqual(diagnostics.entity_summary["SECRET.TRAINING.LOCAL"]["computers"]["disabled"], 27)

@@ -319,21 +319,21 @@ class MSSQLPrivilegeEscalationCheck(Check):
                    'MSSQL_ServerRole' as targetType,
                    srvB.name as targetServer,
                    CASE
-                       WHEN reportHolder THEN [split(coalesce(holder.name, ''), '@')[0], startLogin.name, srvA.name, srvB.name, target.name]
+                       WHEN reportHolder THEN [split(coalesce(holder.name, ''), '@')[0], startLogin.name, srvA.name, srvB.name]
                        WHEN holder:Group AND memberPath IS NOT NULL
-                           THEN {self._ad_member_path_node_names_expr('nodes(memberPath)')} + [startLogin.name, srvA.name, srvB.name, target.name]
-                       ELSE [startLogin.name, srvA.name, srvB.name, target.name]
+                           THEN {self._ad_member_path_node_names_expr('nodes(memberPath)')} + [startLogin.name, srvA.name, srvB.name]
+                       ELSE [startLogin.name, srvA.name, srvB.name]
                    END as pathNodes,
                    CASE
-                       WHEN reportHolder THEN ['MSSQL_HasLogin', 'MSSQL_Connect', 'MSSQL_LinkedAsAdmin', 'MSSQL_Contains']
+                       WHEN reportHolder THEN ['MSSQL_HasLogin', 'MSSQL_Connect', 'MSSQL_LinkedAsAdmin']
                        WHEN holder:Group AND memberPath IS NOT NULL
-                           THEN [rel IN relationships(memberPath) | type(rel)] + ['MSSQL_HasLogin', 'MSSQL_Connect', 'MSSQL_LinkedAsAdmin', 'MSSQL_Contains']
-                       ELSE ['MSSQL_Connect', 'MSSQL_LinkedAsAdmin', 'MSSQL_Contains']
+                           THEN [rel IN relationships(memberPath) | type(rel)] + ['MSSQL_HasLogin', 'MSSQL_Connect', 'MSSQL_LinkedAsAdmin']
+                       ELSE ['MSSQL_Connect', 'MSSQL_LinkedAsAdmin']
                    END as pathEdges,
                    CASE
-                       WHEN reportHolder THEN 4
-                       WHEN holder:Group AND memberPath IS NOT NULL THEN length(memberPath) + 4
-                       ELSE 3
+                       WHEN reportHolder THEN 3
+                       WHEN holder:Group AND memberPath IS NOT NULL THEN length(memberPath) + 3
+                       ELSE 2
                    END as pathLength
         """, parameters=sql_login_holder_parameters(), name="mssql_priv_esc_linked_server")
         return list(rows)
@@ -354,7 +354,10 @@ class MSSQLPrivilegeEscalationCheck(Check):
             return ""
 
         cleaned = [self._clean_node_name(n) for n in path_nodes]
-        if server_display and cleaned:
+        raw_target = path_info.get('target_name') or ''
+        target_name = self._clean_node_name(raw_target) if raw_target else ''
+        terminal_target = bool(target_name) and bool(cleaned) and target_name in cleaned[-1]
+        if server_display and cleaned and terminal_target:
             cleaned[-1] = self._target_display_name(cleaned[-1], target_type, server_display)
 
         parts = [cleaned[0]]
@@ -363,6 +366,9 @@ class MSSQLPrivilegeEscalationCheck(Check):
             next_name = cleaned[i + 1] if i + 1 < len(cleaned) else '?'
             parts.append(edge)
             parts.append(self._display_node(next_name))
+
+        if target_name and not terminal_target:
+            parts[-1] = f"{parts[-1]} ({self._display_node(target_name)})"
 
         chain = " -> ".join(parts)
 

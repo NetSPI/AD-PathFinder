@@ -30,16 +30,18 @@ class SharedGraphPathDisplayHandler(BaseDisplayHandler):
         tokens = self._tokens(path)
         scope_tokens = self._tokens(scope)
 
-        normalized_nodes = {
+        chain = " > ".join(tokens)
+        if not scope_tokens:
+            return chain
+
+        path_nodes = {
             self._normalize_node(token) for token in self._node_tokens(tokens)
         }
-        for token in self._node_tokens(scope_tokens):
-            normalized = self._normalize_node(token)
-            if normalized and normalized not in normalized_nodes:
-                tokens.append(token)
-                normalized_nodes.add(normalized)
+        if all(self._normalize_node(token) in path_nodes
+               for token in self._node_tokens(scope_tokens)):
+            return chain
 
-        return " > ".join(tokens)
+        return f"{chain} | {' > '.join(scope_tokens)}"
 
     def _split_scope(self, line):
         path, sep, scope = line.partition(' | ')

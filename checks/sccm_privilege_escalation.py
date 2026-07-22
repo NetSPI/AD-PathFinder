@@ -418,46 +418,21 @@ class SCCMPrivilegeEscalationCheck(MSSQLDomainMixin, SCCMDomainMixin, Check):
                    CASE WHEN target:MSSQL_DatabaseRole THEN sccmDb.name ELSE null END AS databaseName,
                    srvB.name AS serverName,
                    CASE
-                     WHEN target:MSSQL_DatabaseRole
-                     THEN CASE
-                            WHEN reportHolder THEN ['MSSQL_HasLogin', 'MSSQL_Connect', 'MSSQL_LinkedAsAdmin', 'MSSQL_Contains', 'MSSQL_Contains']
-                            WHEN holder:Group AND memberPath IS NOT NULL
-                                THEN [rel IN relationships(memberPath) | type(rel)] + ['MSSQL_HasLogin', 'MSSQL_Connect', 'MSSQL_LinkedAsAdmin', 'MSSQL_Contains', 'MSSQL_Contains']
-                            ELSE ['MSSQL_Connect', 'MSSQL_LinkedAsAdmin', 'MSSQL_Contains', 'MSSQL_Contains']
-                          END
-                     ELSE CASE
-                            WHEN reportHolder THEN ['MSSQL_HasLogin', 'MSSQL_Connect', 'MSSQL_LinkedAsAdmin', 'MSSQL_Contains']
-                            WHEN holder:Group AND memberPath IS NOT NULL
-                                THEN [rel IN relationships(memberPath) | type(rel)] + ['MSSQL_HasLogin', 'MSSQL_Connect', 'MSSQL_LinkedAsAdmin', 'MSSQL_Contains']
-                            ELSE ['MSSQL_Connect', 'MSSQL_LinkedAsAdmin', 'MSSQL_Contains']
-                          END
+                     WHEN reportHolder THEN ['MSSQL_HasLogin', 'MSSQL_Connect', 'MSSQL_LinkedAsAdmin']
+                     WHEN holder:Group AND memberPath IS NOT NULL
+                         THEN [rel IN relationships(memberPath) | type(rel)] + ['MSSQL_HasLogin', 'MSSQL_Connect', 'MSSQL_LinkedAsAdmin']
+                     ELSE ['MSSQL_Connect', 'MSSQL_LinkedAsAdmin']
                    END AS pathEdges,
                    CASE
-                     WHEN target:MSSQL_DatabaseRole THEN CASE
-                            WHEN reportHolder THEN 5
-                            WHEN holder:Group AND memberPath IS NOT NULL THEN length(memberPath) + 5
-                            ELSE 4
-                          END
-                     ELSE CASE
-                            WHEN reportHolder THEN 4
-                            WHEN holder:Group AND memberPath IS NOT NULL THEN length(memberPath) + 4
-                            ELSE 3
-                          END
+                     WHEN reportHolder THEN 3
+                     WHEN holder:Group AND memberPath IS NOT NULL THEN length(memberPath) + 3
+                     ELSE 2
                    END AS pathLength,
                    CASE
-                     WHEN target:MSSQL_DatabaseRole
-                     THEN CASE
-                            WHEN reportHolder THEN [split(coalesce(holder.name, ''), '@')[0], startLogin.name, srvA.name, srvB.name, 'MSSQL_Database(' + coalesce(sccmDb.name, 'Unknown') + ')', target.name]
-                            WHEN holder:Group AND memberPath IS NOT NULL
-                                THEN {self._path_node_names_expr('nodes(memberPath)')} + [startLogin.name, srvA.name, srvB.name, 'MSSQL_Database(' + coalesce(sccmDb.name, 'Unknown') + ')', target.name]
-                            ELSE [startLogin.name, srvA.name, srvB.name, 'MSSQL_Database(' + coalesce(sccmDb.name, 'Unknown') + ')', target.name]
-                          END
-                     ELSE CASE
-                            WHEN reportHolder THEN [split(coalesce(holder.name, ''), '@')[0], startLogin.name, srvA.name, srvB.name, target.name]
-                            WHEN holder:Group AND memberPath IS NOT NULL
-                                THEN {self._path_node_names_expr('nodes(memberPath)')} + [startLogin.name, srvA.name, srvB.name, target.name]
-                            ELSE [startLogin.name, srvA.name, srvB.name, target.name]
-                          END
+                     WHEN reportHolder THEN [split(coalesce(holder.name, ''), '@')[0], startLogin.name, srvA.name, srvB.name]
+                     WHEN holder:Group AND memberPath IS NOT NULL
+                         THEN {self._path_node_names_expr('nodes(memberPath)')} + [startLogin.name, srvA.name, srvB.name]
+                     ELSE [startLogin.name, srvA.name, srvB.name]
                    END AS pathNodeNames,
                    sccmDb.name AS sccmImpactDb,
                    site.siteCode AS sccmImpactSite
@@ -882,6 +857,11 @@ class SCCMPrivilegeEscalationCheck(MSSQLDomainMixin, SCCMDomainMixin, Check):
             context = edge_contexts[i] if i < len(edge_contexts) else None
             parts.append(self._format_edge(edge, context))
             parts.append(next_name)
+
+        raw_target = path.get('target_name') or ''
+        target_name = self._clean_name(raw_target) if raw_target else ''
+        if target_name and target_name not in parts[-1]:
+            parts[-1] = f"{parts[-1]} ({target_name})"
 
         return " -> ".join(parts)
 

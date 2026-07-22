@@ -5,7 +5,7 @@ Two main test surfaces ship in this repo:
 1. **Framework unit tests** — mock-based, no Neo4j required.
 2. **Neo4j fixture tests** — load Cypher fixtures into a real Neo4j. They are selected by the `@pytest.mark.neo4j` marker and may live anywhere under `tests/`.
 
-Both suites run on every PR via CI. Framework tests run across the Python 3.9/3.13 matrix; Neo4j fixture tests run on 3.13 only against a `neo4j:5-community` service container.
+Both suites run on every PR via CI. Framework tests run across the Python 3.9/3.13 matrix; Neo4j fixture tests run on 3.13 only against a `neo4j:4.4` service container, matching the Neo4j version BloodHound CE ships.
 
 ## Running the fast suite (no Docker)
 
@@ -29,7 +29,7 @@ Start a disposable container:
 docker run -d --name adpf-test-neo4j \
   -p 17474:7474 -p 17687:7687 \
   -e NEO4J_AUTH=neo4j/testpassword \
-  neo4j:5-community
+  neo4j:4.4
 
 # Wait for Bolt:
 until docker exec adpf-test-neo4j cypher-shell -u neo4j -p testpassword "RETURN 1" >/dev/null 2>&1; do sleep 2; done

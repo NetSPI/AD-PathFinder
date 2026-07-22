@@ -64,7 +64,8 @@ def test_shared_graph_path_splits_sccm_scope_from_path_template():
     assert (
         "        user1 > MSSQL_Connect > lab-sql01.training.local > MSSQL_LinkedAsAdmin "
         "> sccmdb.training.local > MSSQL_Contains > MSSQL_Database(CM_TRN) "
-        "> MSSQL_Contains > db_owner@CM_TRN > SCCM_Site(TRN)"
+        "> MSSQL_Contains > db_owner@CM_TRN "
+        "| MSSQL_Database(CM_TRN) > SCCM_AssignAllPermissions > SCCM_Site(TRN)"
     ) in out
     assert not any("SCCM Scope:" in line for line in out)
 
@@ -77,4 +78,7 @@ def test_scope_node_with_platform_prefix_is_not_dropped():
         )
     })
 
-    assert "        user1 > MSSQL_Connect > sql01 > MSSQL_login_stub" in out
+    assert (
+        "        user1 > MSSQL_Connect > sql01 "
+        "| SCCM_AssignAllPermissions > MSSQL_login_stub"
+    ) in out

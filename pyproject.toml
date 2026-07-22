@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "adpathfinder"
-version = "1.1.0"
+version = "1.2.0"
 description = "Maps Active Directory attack paths from SharpHound, OpenGraph, NTDS, and hashcat data into prioritized AD and password audit reports."
 readme = "README.md"
 license = "BSD-3-Clause"

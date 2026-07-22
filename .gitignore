@@ -32,6 +32,7 @@ config.ini
 *.zip
 !sample_data/**
 !sample_reports/**
+!requirements.txt
 
 # IDE / OS
 .idea/

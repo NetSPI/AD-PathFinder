@@ -1,0 +1,8 @@
+# pyproject.toml is the source of truth; `pip install -e .` is the supported install.
+# Test extras: pip install -e ".[test]"
+neo4j>=5.0.0
+colorama>=0.4.4
+requests>=2.25.1
+beautifulsoup4>=4.9.3
+argcomplete>=1.12.3
+prompt_toolkit>=3.0.20

@@ -11,7 +11,7 @@ TESTS_DIR = Path(__file__).parent / "checks"
 CROSS_DOMAIN_TESTS_DIR = TESTS_DIR / "cross_domain"
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
-EXTRA_TEST_FILES = {"test_manager_smoke.py", "test_escalation_disabled_victim_guard.py"}
+EXTRA_TEST_FILES = {"test_manager_smoke.py"}
 
 EXTRA_FIXTURES = {
     "bad_successor_foreign_dc",
@@ -40,7 +40,6 @@ EXTRA_FIXTURES = {
     "esc3_victim_no_agent",
     "esc3_victim_disjoint_acl",
     "esc3_victim_mixed_acl",
-    "escalation_disabled_victim_guard",
 }
 
 

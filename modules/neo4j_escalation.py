@@ -3,16 +3,9 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .node_type_cache import AD_REPORT_LABELS
-from .relationships import WRITE_CONTROL_RELS
 
 
 class EscalationPathsMixin:
-
-    @staticmethod
-    def _disabled_victim_guard():
-        rels = ", ".join(f"'{r}'" for r in WRITE_CONTROL_RELS)
-        return (f"ALL(_r IN relationships(p) WHERE "
-                f"coalesce(endNode(_r).enabled, true) = true OR type(_r) IN [{rels}])")
 
     def get_user_escalation_paths(self, username=None, force_refresh=False, batch_mode=False, usernames=None):
         if batch_mode:
@@ -405,7 +398,6 @@ class EscalationPathsMixin:
                 // For each entity-target pair, find shortest path with max 6 hops
                 WITH m, g
                 MATCH p=shortestPath((m)-[:""" + all_rels + """*1..6]->(g))
-                WHERE """ + self._disabled_victim_guard() + """
                 // Prefer paths to DA/DC/EA/Admin targets over other high-value targets
                 WITH m.objectid AS entity_id, m, p, length(p) AS path_length,
                      CASE
@@ -600,7 +592,6 @@ class EscalationPathsMixin:
             OPTIONAL MATCH p=allShortestPaths((m)-[r*1..]->(n {{highvalue:true}}))
             WHERE NONE(r IN relationships(p) WHERE type(r) IN ["GetChanges", "GetChangesAll"])
             AND NOT m=n
-            AND {self._disabled_victim_guard()}
             WITH m, p,
                 CASE WHEN p IS NOT NULL THEN
                     reduce(s = [], i IN range(0, size(nodes(p)) - 2) |
@@ -652,7 +643,6 @@ class EscalationPathsMixin:
                 (g.system_tags IS NOT NULL AND g.system_tags CONTAINS 'admin_tier_0') OR
                 g.name =~ '.*DOMAIN ADMINS.*'
             )
-            AND {self._disabled_victim_guard()}
             {self._get_tier0_target_exclusion('g')}
             WITH m, p,
                 CASE
@@ -741,7 +731,6 @@ class EscalationPathsMixin:
             WITH m
             MATCH p=(m)-[:{all_rels}*1..6]->(g)
             WHERE m <> g AND "admin_tier_0" IN split(g.system_tags, ' ')
-            AND {self._disabled_victim_guard()}
             {self._get_tier0_target_exclusion('g')}
             WITH m, p,
                 CASE

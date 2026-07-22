@@ -254,7 +254,7 @@ class VulnerabilityFrameworkManager:
         summary = self.neo4j_data.get_entity_counts()
         users = self.shared_cache.get(DataTypes.USERS)
         if users and "users" in summary:
-            summary["users"]["admin"] = sum(1 for u in users if u.get('isAdmin'))
+            summary["users"]["admin"] = sum(1 for u in users if u.get('isAdmin') and not u.get('is_computer'))
         if summary:
             domain_key = self._diagnostic_domain or self.neo4j_data.get_domain_name()
             self._diagnostics.entity_summary[domain_key] = summary

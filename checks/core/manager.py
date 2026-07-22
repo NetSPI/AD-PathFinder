@@ -251,21 +251,10 @@ class VulnerabilityFrameworkManager:
         print(f"Error running check {check_class.__name__}: {error}")
 
     def _record_entity_summary(self):
-        summary = {}
-        counts = self.neo4j_data.get_entity_counts()
+        summary = self.neo4j_data.get_entity_counts()
         users = self.shared_cache.get(DataTypes.USERS)
-        if users:
-            summary["users"] = {
-                **counts.get("users", {}),
-                "admin": sum(1 for u in users if u.get('isAdmin')),
-            }
-        computers = self.shared_cache.get(DataTypes.COMPUTERS)
-        if computers:
-            summary["computers"] = {
-                **counts.get("computers", {}),
-                "domain_controllers": sum(1 for c in computers if c.get('isDomainController') is True),
-                "unconstrained_delegation": sum(1 for c in computers if c.get('unconstrainedDelegation') is True),
-            }
+        if users and "users" in summary:
+            summary["users"]["admin"] = sum(1 for u in users if u.get('isAdmin'))
         if summary:
             domain_key = self._diagnostic_domain or self.neo4j_data.get_domain_name()
             self._diagnostics.entity_summary[domain_key] = summary

@@ -37,7 +37,15 @@ class VulnerabilityFrameworkManager:
 
         if self._diagnostics:
             self._diagnostic_query_start_index = len(self._diagnostics.queries)
-            self._record_entity_summary()
+            try:
+                self._record_entity_summary()
+            except Exception as error:
+                print(f"Warning: failed to record entity summary: {error}")
+                self._diagnostics.record_error(
+                    "entity_summary",
+                    error,
+                    domain=self._diagnostic_domain,
+                )
 
         runnable = [c for c in CheckRegistry.get_all_checks() if not self._should_skip(c)]
 

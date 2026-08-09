@@ -89,6 +89,30 @@ class TestFrameworkHardeningDiagnostics(unittest.TestCase):
         sources = [e["source"] for e in diagnostics.errors]
         self.assertIn(f"preload:{DataTypes.COMPUTERS}", sources)
 
+    def test_entity_summary_exception_records_error_and_continues_checks(self):
+        CheckRegistry.checks = []
+        ran = {"value": False}
+
+        @check(risk="Low", category="Survives Summary Failure", data=[])
+        class SurvivesSummaryFailureCheck(Check):
+            def execute(self):
+                ran["value"] = True
+                return {}
+
+        class BrokenEntitySummaryNeo4jData(FakeNeo4jData):
+            def get_entity_counts(self):
+                raise RuntimeError("entity summary failed")
+
+        diagnostics = self._run_manager(BrokenEntitySummaryNeo4jData())
+
+        self.assertTrue(ran["value"])
+        summary_errors = [
+            error for error in diagnostics.errors
+            if error["source"] == "entity_summary"
+        ]
+        self.assertEqual(len(summary_errors), 1)
+        self.assertIn("entity summary failed", summary_errors[0]["error"])
+
     def test_datasource_exception_records_datasource_error_and_skips_check(self):
         CheckRegistry.checks = []
         ran = {"value": False}

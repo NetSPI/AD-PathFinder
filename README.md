@@ -188,6 +188,7 @@ See [Adding new checks](https://github.com/NetSPI/AD-PathFinder/wiki/Adding-New-
 
 ADPathFinder builds on data collected by other projects; thanks to their authors and the SpecterOps team:
 
+- [Darkmoon](https://github.com/ASCIT31/Dark-Moon) — Open source (GPL-3.0) autonomous AI penetration testing platform covering web, API, Active Directory and Kubernetes, orchestrating 80+ offensive tools as an MCP host with proof of exploitation and a local privacy gateway (the LLM never sees real IPs or credentials).
 - [BloodHound CE](https://github.com/SpecterOps/BloodHound) — the Active Directory graph data.
 - [MSSQLHound](https://github.com/SpecterOps/MSSQLHound) by Chris Thompson — MSSQL collection.
 - [ConfigManBearPig](https://github.com/SpecterOps/ConfigManBearPig) by Chris Thompson — SCCM collection.

@@ -5,7 +5,7 @@ Two main test surfaces ship in this repo:
 1. **Framework unit tests** — mock-based, no Neo4j required.
 2. **Neo4j fixture tests** — load Cypher fixtures into a real Neo4j. They are selected by the `@pytest.mark.neo4j` marker and may live anywhere under `tests/`.
 
-Both suites run on every PR via CI. Framework tests run across the Python 3.9/3.13 matrix; Neo4j fixture tests run on 3.13 only against a `neo4j:4.4` service container, matching the Neo4j version BloodHound CE ships.
+Both suites run on every PR via CI. Framework tests run across the Python 3.11/3.14 matrix; Neo4j fixture tests run on 3.14 only against a `neo4j:4.4` service container, matching the Neo4j version BloodHound CE ships.
 
 ## Running the fast suite (no Docker)
 
@@ -14,7 +14,7 @@ pip install -e ".[test]"
 pytest tests/ -m "not neo4j and not integration" -v
 ```
 
-This runs every framework test and skips anything Neo4j-backed. CI runs the same selector on Python 3.9 and 3.13.
+This runs every framework test and skips anything Neo4j-backed. CI runs the same selector on Python 3.11 and 3.14.
 
 ## Running the Neo4j fixture suite
 

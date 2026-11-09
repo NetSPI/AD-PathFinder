@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 20
     strategy:
       matrix:
-        python-version: ['3.9', '3.13']
+        python-version: ['3.11', '3.14']
     steps:
       - uses: actions/checkout@v7
 
@@ -43,7 +43,7 @@ jobs:
           --cov-report=xml --cov-report=term
 
       - name: Upload coverage
-        if: matrix.python-version == '3.13'
+        if: matrix.python-version == '3.14'
         uses: codecov/codecov-action@v7
         with:
           files: coverage.xml
@@ -70,7 +70,7 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.13'
+          python-version: '3.14'
           cache: pip
           cache-dependency-path: pyproject.toml
 

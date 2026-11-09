@@ -27,7 +27,7 @@ ADPathFinder is an attack mapping tool for pentesters and red teamers. It analys
 
 ## Requirements
 
-- Python 3.9 or later.
+- Python 3.11 or later.
 - BloodHound CE and Neo4j available locally by default at `neo4j://localhost:7687`.
 - BloodHound CE API credentials for import and delete operations.
 - A BloodHound CE / SharpHound zip for AD audit coverage.

@@ -507,135 +507,84 @@ def test_opengraph_endpoint_stubs_use_source_kind_label():
     assert any("MERGE (n:`Jenkins_Base` {objectid: $objectid})" in q for q, _ in conn.queries)
 
 
-def test_opengraph_endpoint_stubs_reject_invalid_source_kind_before_query():
-    conn = RecordingConnection(responses=[[{"c": 0}], [{"c": 0}]])
-    importer = BloodhoundImporter(conn)
-    data = {
-        "metadata": {"source_kind": "Jenkins-Base"},
-        "graph": {
-            "nodes": [],
-            "edges": [
-                {
-                    "kind": "Jenkins_AdminTo",
-                    "start": {"value": "jenkins-1"},
-                    "end": {"value": "S-1-1"},
-                    "properties": {},
-                }
-            ],
-        },
+def _node(node_id, kind, **overrides):
+    return {"id": node_id, "kinds": ["Base", kind], "properties": {}, **overrides}
+
+
+def _edge(kind, start=None, end=None, **overrides):
+    return {
+        "kind": kind,
+        "start": start or {"value": "jenkins-1"},
+        "end": end or {"value": "job-1"},
+        "properties": {},
+        **overrides,
     }
 
-    with pytest.raises(ValueError, match="metadata\\.source_kind"):
-        importer._import_opengraph_files_directly(
-            [("jenkins.json", data, "opengraph")]
+
+_SERVER_AND_JOB = [_node("jenkins-1", "Jenkins_Server"), _node("job-1", "Jenkins_Job")]
+
+_INVALID_ENDPOINTS = [
+    ({"match_by": "property", "value": "x", "property_matchers": []}, "start\\.value is not supported"),
+    ({"match_by": "property"}, "start\\.property_matchers must be a non-empty list"),
+    (
+        {"match_by": "id", "value": "x", "property_matchers": [{"key": "email", "operator": "equals", "value": "x"}]},
+        "start\\.property_matchers is only supported",
+    ),
+    ({"match_by": "name"}, "start\\.value is required"),
+    ({"match_by": "bogus", "value": "x"}, "start\\.match_by must be one of"),
+    (
+        {"match_by": "property", "property_matchers": [{"key": "email", "operator": "contains", "value": "x"}]},
+        "start\\.property_matchers\\[0\\]\\.operator must be 'equals'",
+    ),
+    ({"match_by": "id", "value": "x", "kind": "Bad-Kind"}, "start\\.kind has unsupported identifier"),
+]
+
+
+@pytest.mark.parametrize(("data", "error"), [
+    pytest.param(
+        _opengraph("Jenkins-Base", [], [_edge("Jenkins_AdminTo")]),
+        "metadata\\.source_kind", id="invalid_source_kind",
+    ),
+    *[
+        pytest.param(
+            _opengraph(source_kind, [_node("jenkins-1", "Jenkins_Server")]),
+            "metadata\\.source_kind must be a string", id=f"non_string_source_kind_{source_kind!r}",
         )
-
-    assert conn.queries == []
-
-
-def test_opengraph_rejects_invalid_node_label_before_query():
+        for source_kind in (None, False, 0, [])
+    ],
+    pytest.param(
+        _opengraph("Jenkins_Base", [_node("jenkins-1", "Jenkins_Server"), _node("jenkins-2", "Jenkins-Server")]),
+        "node 'jenkins-2' label", id="invalid_node_label",
+    ),
+    pytest.param(
+        _opengraph("Jenkins_Base", [_node("jenkins-1", "Jenkins_Server", properties=["bad"])]),
+        "node 'jenkins-1' properties must be an object", id="non_object_node_properties",
+    ),
+    *[
+        pytest.param(
+            _opengraph("Jenkins_Base", [_node("jenkins-1", "Jenkins_Server", kinds=kinds)]),
+            "node 'jenkins-1' kinds must be a list", id=f"falsey_kinds_{kinds!r}",
+        )
+        for kinds in ("", None, False, 0, {}, ())
+    ],
+    pytest.param(
+        _opengraph("Jenkins_Base", _SERVER_AND_JOB, [_edge("Jenkins-Runs")]),
+        "edge 0 kind", id="invalid_edge_kind",
+    ),
+    pytest.param(
+        _opengraph("Jenkins_Base", _SERVER_AND_JOB, [_edge("Jenkins_Runs", properties="bad")]),
+        "edge 0 properties must be an object", id="non_object_edge_properties",
+    ),
+    *[
+        pytest.param(_opengraph("Jenkins_Base", [], [_edge("Jenkins_Runs", start=start)]), error, id=f"endpoint_{i}")
+        for i, (start, error) in enumerate(_INVALID_ENDPOINTS)
+    ],
+])
+def test_opengraph_rejects_invalid_payload_before_query(data, error):
     conn = RecordingConnection()
-    importer = BloodhoundImporter(conn)
-    data = _opengraph(
-        "Jenkins_Base",
-        [
-            {
-                "id": "jenkins-1",
-                "kinds": ["Base", "Jenkins_Server"],
-                "properties": {},
-            },
-            {
-                "id": "jenkins-2",
-                "kinds": ["Base", "Jenkins-Server"],
-                "properties": {},
-            },
-        ],
-    )
 
-    with pytest.raises(ValueError, match="node 'jenkins-2' label"):
-        importer._import_opengraph_files_directly(
-            [("jenkins.json", data, "opengraph")]
-        )
-
-    assert conn.queries == []
-
-
-def test_opengraph_rejects_invalid_edge_kind_before_query():
-    conn = RecordingConnection()
-    importer = BloodhoundImporter(conn)
-    data = _opengraph(
-        "Jenkins_Base",
-        [
-            {
-                "id": "jenkins-1",
-                "kinds": ["Base", "Jenkins_Server"],
-                "properties": {},
-            },
-            {
-                "id": "job-1",
-                "kinds": ["Base", "Jenkins_Job"],
-                "properties": {},
-            },
-        ],
-        [
-            {
-                "kind": "Jenkins-Runs",
-                "start": {"value": "jenkins-1"},
-                "end": {"value": "job-1"},
-                "properties": {},
-            }
-        ],
-    )
-
-    with pytest.raises(ValueError, match="edge 0 kind"):
-        importer._import_opengraph_files_directly(
-            [("jenkins.json", data, "opengraph")]
-        )
-
-    assert conn.queries == []
-
-
-def test_opengraph_rejects_non_object_node_properties_before_query():
-    conn = RecordingConnection()
-    importer = BloodhoundImporter(conn)
-    data = _opengraph(
-        "Jenkins_Base",
-        [
-            {
-                "id": "jenkins-1",
-                "kinds": ["Base", "Jenkins_Server"],
-                "properties": ["bad"],
-            }
-        ],
-    )
-
-    with pytest.raises(ValueError, match="node 'jenkins-1' properties must be an object"):
-        importer._import_opengraph_files_directly(
-            [("jenkins.json", data, "opengraph")]
-        )
-
-    assert conn.queries == []
-
-
-@pytest.mark.parametrize("kinds", ["", None, False, 0, {}, ()])
-def test_opengraph_rejects_falsey_non_list_kinds_before_query(kinds):
-    conn = RecordingConnection()
-    importer = BloodhoundImporter(conn)
-    data = _opengraph(
-        "Jenkins_Base",
-        [
-            {
-                "id": "jenkins-1",
-                "kinds": kinds,
-                "properties": {},
-            }
-        ],
-    )
-
-    with pytest.raises(ValueError, match="node 'jenkins-1' kinds must be a list"):
-        importer._import_opengraph_files_directly(
-            [("jenkins.json", data, "opengraph")]
-        )
+    with pytest.raises(ValueError, match=error):
+        BloodhoundImporter(conn)._import_opengraph_files_directly([("jenkins.json", data, "opengraph")])
 
     assert conn.queries == []
 
@@ -667,41 +616,6 @@ def test_import_opengraph_node_rejects_non_list_kinds_direct_call():
             {"id": "jenkins-1", "kinds": "", "properties": {}},
             "jenkins.json",
             "opengraph",
-        )
-
-    assert conn.queries == []
-
-
-def test_opengraph_rejects_non_object_edge_properties_before_query():
-    conn = RecordingConnection()
-    importer = BloodhoundImporter(conn)
-    data = _opengraph(
-        "Jenkins_Base",
-        [
-            {
-                "id": "jenkins-1",
-                "kinds": ["Base", "Jenkins_Server"],
-                "properties": {},
-            },
-            {
-                "id": "job-1",
-                "kinds": ["Base", "Jenkins_Job"],
-                "properties": {},
-            },
-        ],
-        [
-            {
-                "kind": "Jenkins_Runs",
-                "start": {"value": "jenkins-1"},
-                "end": {"value": "job-1"},
-                "properties": "bad",
-            }
-        ],
-    )
-
-    with pytest.raises(ValueError, match="edge 0 properties must be an object"):
-        importer._import_opengraph_files_directly(
-            [("jenkins.json", data, "opengraph")]
         )
 
     assert conn.queries == []
@@ -826,77 +740,6 @@ def test_opengraph_edges_can_match_endpoint_by_property_matchers():
         {"key": "email", "operator": "equals", "value": "dev@example.local"}
     ]
     assert edge_params["end_id"] == "job-1"
-
-
-@pytest.mark.parametrize(
-    ("start", "expected_error"),
-    [
-        (
-            {"match_by": "property", "value": "x", "property_matchers": []},
-            "start\\.value is not supported",
-        ),
-        (
-            {"match_by": "property"},
-            "start\\.property_matchers must be a non-empty list",
-        ),
-        (
-            {
-                "match_by": "id",
-                "value": "x",
-                "property_matchers": [
-                    {"key": "email", "operator": "equals", "value": "x"}
-                ],
-            },
-            "start\\.property_matchers is only supported",
-        ),
-        (
-            {"match_by": "name"},
-            "start\\.value is required",
-        ),
-        (
-            {"match_by": "bogus", "value": "x"},
-            "start\\.match_by must be one of",
-        ),
-        (
-            {
-                "match_by": "property",
-                "property_matchers": [
-                    {"key": "email", "operator": "contains", "value": "x"}
-                ],
-            },
-            "start\\.property_matchers\\[0\\]\\.operator must be 'equals'",
-        ),
-        (
-            {"match_by": "id", "value": "x", "kind": "Bad-Kind"},
-            "start\\.kind has unsupported identifier",
-        ),
-    ],
-)
-def test_opengraph_rejects_invalid_endpoint_matchers_before_query(
-    start,
-    expected_error,
-):
-    conn = RecordingConnection()
-    importer = BloodhoundImporter(conn)
-    data = _opengraph(
-        "Jenkins_Base",
-        [],
-        [
-            {
-                "kind": "Jenkins_Runs",
-                "start": start,
-                "end": {"value": "job-1"},
-                "properties": {},
-            }
-        ],
-    )
-
-    with pytest.raises(ValueError, match=expected_error):
-        importer._import_opengraph_files_directly(
-            [("jenkins.json", data, "opengraph")]
-        )
-
-    assert conn.queries == []
 
 
 def test_import_warns_once_for_dropped_properties(capsys):
@@ -1184,32 +1027,6 @@ def test_direct_import_rejects_malformed_metadata_before_any_write():
                 ("valid.json", valid, "opengraph"),
                 ("invalid.json", invalid, "opengraph"),
             ]
-        )
-
-    assert conn.queries == []
-
-
-@pytest.mark.parametrize("source_kind", [None, False, 0, []])
-def test_opengraph_rejects_present_non_string_source_kind_before_query(source_kind):
-    conn = RecordingConnection()
-    importer = BloodhoundImporter(conn)
-    data = {
-        "metadata": {"source_kind": source_kind},
-        "graph": {
-            "nodes": [
-                {
-                    "id": "jenkins-1",
-                    "kinds": ["Base", "Jenkins_Server"],
-                    "properties": {},
-                }
-            ],
-            "edges": [],
-        },
-    }
-
-    with pytest.raises(ValueError, match="metadata.source_kind must be a string"):
-        importer._import_opengraph_files_directly(
-            [("jenkins.json", data, "opengraph")]
         )
 
     assert conn.queries == []

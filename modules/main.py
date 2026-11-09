@@ -337,6 +337,14 @@ def run_multi_domain_full_audit(audit_context, company_names,
     )
 
 
+def _apply_uri_overrides(args):
+    # Via env so every config reload, including the bootstrap's, picks them up.
+    if args.neo4j_uri:
+        os.environ['ADPF_NEO4J_URI'] = args.neo4j_uri
+    if args.bloodhound_url:
+        os.environ['ADPF_BLOODHOUND_URL'] = args.bloodhound_url
+
+
 def main():
     parser = argparse.ArgumentParser(description="ADPathfinder")
     
@@ -353,10 +361,13 @@ def main():
     parser.add_argument('--setup-bloodhound-api', action='store_true', help='Configure BloodHound API settings, used for importing and deleting data')
     parser.add_argument('--unsafe-report', action='store_true', help='Generate unsafe reports that include cleartext passwords')
     parser.add_argument('--diagnostics', action='store_true', help='Write diagnostics.json with execution stats')
+    parser.add_argument('--neo4j-uri', metavar='URI', help='Neo4j URI, e.g. neo4j://host:7687 (overrides ADPF_NEO4J_URI and config.ini)')
+    parser.add_argument('--bloodhound-url', metavar='URL', help='BloodHound CE URL, e.g. http://host:8080 (overrides ADPF_BLOODHOUND_URL and config.ini)')
 
     argcomplete.autocomplete(parser)
     args = parser.parse_args()
-    
+    _apply_uri_overrides(args)
+
     config = configparser.ConfigParser()
     config_file = 'config.ini'
 
